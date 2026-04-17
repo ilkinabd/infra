@@ -1,0 +1,128 @@
+services:
+  # --- INFRASTRUCTURE ---
+  db:
+    image: postgres:17-alpine
+    container_name: lobbym-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: lobbym
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - lobbym-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: lobbym-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - lobbym-network
+
+  # --- MAIL SERVER (MAILU) ---
+  front:
+    image: ghcr.io/mailu/nginx:2.0
+    restart: always
+    env_file: mailu.env
+    dns:
+      - 172.22.0.254
+    ports:
+      - "80:80"
+      - "443:443"
+      - "25:25"
+      - "465:465"
+      - "587:587"
+      - "143:143"
+      - "993:993"
+      - "110:110"
+      - "995:995"
+    volumes:
+      - ./mailu/config:/config
+      - ./mailu/data:/data
+      - ./mailu/certs:/certs
+    networks:
+      - lobbym-network
+
+  resolver:
+    image: ghcr.io/mailu/unbound:2.0
+    restart: always
+    env_file: mailu.env
+    networks:
+      lobbym-network:
+        ipv4_address: 172.22.0.254
+
+  admin:
+    image: ghcr.io/mailu/admin:2.0
+    restart: always
+    env_file: mailu.env
+    dns:
+      - 172.22.0.254
+    volumes:
+      - ./mailu/data:/data
+      - ./mailu/dkim:/dkim
+    networks:
+      - lobbym-network
+
+  imap:
+    image: ghcr.io/mailu/dovecot:2.0
+    restart: always
+    env_file: mailu.env
+    dns:
+      - 172.22.0.254
+    volumes:
+      - ./mailu/data:/data
+      - ./mailu/mail:/mail
+      - ./mailu/overrides:/overrides
+      - ./mailu/certs:/certs
+    networks:
+      - lobbym-network
+
+  smtp:
+    image: ghcr.io/mailu/postfix:2.0
+    restart: always
+    env_file: mailu.env
+    dns:
+      - 172.22.0.254
+    volumes:
+      - ./mailu/data:/data
+      - ./mailu/overrides:/overrides
+      - ./mailu/certs:/certs
+    networks:
+      - lobbym-network
+
+  antispam:
+    image: ghcr.io/mailu/rspamd:2.0
+    restart: always
+    env_file: mailu.env
+    dns:
+      - 172.22.0.254
+    volumes:
+      - ./mailu/filter:/var/lib/rspamd
+    networks:
+      - lobbym-network
+
+  webmail:
+    image: ghcr.io/mailu/webmail:2.0
+    restart: always
+    env_file: mailu.env
+    dns:
+      - 172.22.0.254
+    volumes:
+      - ./mailu/webmail:/data
+    networks:
+      - lobbym-network
+
+volumes:
+  pg_data:
+
+networks:
+  lobbym-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.22.0.0/16

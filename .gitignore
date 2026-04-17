@@ -1,0 +1,31 @@
+.idea/
+
+# Production Mail Data (DO NOT COMMIT)
+production/mailu/data/
+production/mailu/certs/
+production/mailu/dkim/
+production/mailu/mail/
+production/mailu/overrides/
+production/mailu/filter/
+production/mailu/webmail/
+production/mailu.env
+
+# Local Mail Data
+mailu/data/
+mailu/certs/
+mailu/dkim/
+mailu/mail/
+mailu/overrides/
+mailu/filter/
+mailu/webmail/
+mailu.env
+
+# System/IDE
+node_modules/
+.next/
+dist/
+build/
+.env
+.idea/
+*.log
+tmp/

@@ -1,0 +1,33 @@
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: lobbym-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: lobbym
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - lobbym_pg_data:/var/lib/postgresql/data
+      - ./tmp:/tmp
+      - ./postgres_backup.sql:/docker-entrypoint-initdb.d/postgres_backup.sql
+    networks:
+      - lobbym-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: lobbym-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - lobbym-network
+
+volumes:
+  lobbym_pg_data:
+
+networks:
+  lobbym-network:
+    external: true
