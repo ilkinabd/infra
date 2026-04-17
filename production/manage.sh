@@ -17,6 +17,10 @@ function show_help() {
     echo "  db-drop [dbname]                      - Delete a Postgres database"
     echo "  db-user-add [user] [pass]             - Create a new Postgres user"
     echo "  db-list                               - List all databases"
+    echo ""
+    echo "General Commands:"
+    echo "  logs [service]                        - Watch container logs"
+    echo "  status                                - Show container status"
 }
 
 case "$1" in
@@ -49,6 +53,14 @@ case "$1" in
         ;;
     db-list)
         docker exec -it lobbym-postgres psql -U postgres -c "\l"
+        ;;
+
+    logs)
+        docker compose logs -f "$2"
+        ;;
+    
+    status)
+        docker compose ps
         ;;
 
     *)
