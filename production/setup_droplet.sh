@@ -35,7 +35,8 @@ if [ "$MODE" == "local" ]; then
     fi
 else
     TLS_FLAVOR="letsencrypt"
-    HOSTNAMES="mail.lobbym.com,lobbym.com"
+    # Note: Only using mail subdomain for HOSTNAMES to avoid Cloudflare Proxy issues with root domain during LE validation
+    HOSTNAMES="mail.lobbym.com"
 fi
 
 # 5. Handle Configuration
