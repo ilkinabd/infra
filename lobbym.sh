@@ -14,10 +14,6 @@ NETWORK_NAME="lobbym-network"
 ROOT_DIR="/home/iandr"
 INFRA_DIR="$ROOT_DIR/dev.infra.lobbym.com"
 
-# Mail Server Credentials
-MAIL_ADMIN_USER="admin"
-MAIL_ADMIN_DOMAIN="lobbym.com"
-MAIL_ADMIN_PASS="ilkinabd1"
 
 API_DIR="$ROOT_DIR/dev.api.lobbym.com"
 ADMIN_DIR="$ROOT_DIR/dev.admin.lobbym.com"
@@ -83,20 +79,12 @@ fi
 echo "📦 Starting Infrastructure (DB, Redis)..."
 cd "$INFRA_DIR" && docker compose up -d
 
-# 2.1 Start Mail Server
-echo "📧 Starting Mail Server (Mailu)..."
-cd "$INFRA_DIR/mail" && docker compose up -d
-# Wait a bit for Mailu admin to be ready
-sleep 3
-# Create or Update initial admin account
-docker compose exec -T admin flask mailu admin "$MAIL_ADMIN_USER" "$MAIL_ADMIN_DOMAIN" "$MAIL_ADMIN_PASS" || \
-docker compose exec -T admin flask mailu password "$MAIL_ADMIN_USER" "$MAIL_ADMIN_DOMAIN" "$MAIL_ADMIN_PASS" || true
 
 # 3. Start Backend Services
 echo "🐘 Starting API Backend..."
 cd "$API_DIR"
 docker_composer install
-cd "$API_DIR/deployments" && docker compose up -d
+cd "$API_DIR/deployments" && docker compose up -d --build
 
 echo "📊 Starting Admin Backend..."
 cd "$ADMIN_DIR"
@@ -104,7 +92,7 @@ docker_composer install
 if [ ! -d "node_modules" ]; then docker_npm install; fi
 # Build only if resources folder exists
 if [ -d "resources" ]; then docker_npm run build; else echo "⏩ Skipping Admin build (no resources folder found)"; fi
-cd "$ADMIN_DIR/deployments" && docker compose up -d
+cd "$ADMIN_DIR/deployments" && docker compose up -d --build
 
 echo "⚛️ Starting Frontend..."
 cd "$FRONT_DIR"
@@ -125,10 +113,11 @@ fi
 echo "⏳ Waiting for containers to stabilize..."
 sleep 2
 
-# 4. Run Migrations and Seeding
-echo "🛠️  Running API Migrations & Seeding..."
-docker exec lobbym-api-php php artisan migrate:fresh --seed
+echo "🔓 Fixing folder permissions..."
+docker exec lobbym-api-php chmod -R 777 storage bootstrap/cache || true
+docker exec lobbym-admin-php chmod -R 777 storage bootstrap/cache || true
 
+# 4. Run Migrations and Seeding
 echo "🛠️  Running Admin Migrations & Seeding..."
 docker exec lobbym-admin-php php artisan migrate:fresh --seed
 
@@ -144,7 +133,6 @@ docker exec lobbym-admin-php php artisan tinker --execute="foreach(DB::table('pa
 echo "-------------------------------------------------------------------"
 echo "API Admin: magaza@example.com / 12345"
 echo "Panel Admin: admin / 12345"
+echo "Admin Panel: http://localhost:8081"
 echo "Frontend: http://localhost:3000"
-echo "Mail Admin: http://localhost:8085/admin"
-echo "Webmail: http://localhost:8085/webmail"
 echo "-------------------------------------------------------------------"
