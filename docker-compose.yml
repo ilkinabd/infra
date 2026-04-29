@@ -12,7 +12,6 @@ services:
     volumes:
       - lobbym_pg_data:/var/lib/postgresql/data
       - ./tmp:/tmp
-      - ./postgres_backup.sql:/docker-entrypoint-initdb.d/postgres_backup.sql
     networks:
       - lobbym-network
 
