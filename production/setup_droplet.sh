@@ -75,7 +75,7 @@ fi
 
 # 6. Bring up services
 echo "🐳 Starting Containers..."
-sudo docker compose up -d
+sudo docker compose up --build -d
 
 echo "✅ Deployment Successful!"
 echo "--------------------------------------------------"
