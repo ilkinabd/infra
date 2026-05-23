@@ -83,21 +83,24 @@ app.post('/scrape', async (req, res) => {
         let parserFile = 'MetaParser.js';
         let parserClass = 'MetaParser';
 
-        // Inject the selected parser script onto the page first
+        // Dynamically require the parser to retrieve its selectors
+        const Parser = require(path.join(__dirname, 'parsers', parserFile));
+        const selectors = Parser.selectors || [];
+
+        if (selectors.length > 0) {
+            try {
+                await page.waitForFunction((selList) => {
+                    return selList.some(sel => !!document.querySelector(sel));
+                }, { timeout: 10000 }, selectors);
+                console.log(`✅ Found expected selectors for ${parserClass}.`);
+            } catch (err) {
+                console.warn(`⚠️ Warning: Timed out waiting for selectors:`, err.message);
+            }
+        }
+
+        // Inject the selected parser script onto the page
         const parserContent = fs.readFileSync(path.join(__dirname, 'parsers', parserFile), 'utf8');
         await page.evaluate(parserContent);
-
-        // Wait until MetaParser extracts at least a title and an image
-        try {
-            await page.waitForFunction((pClass) => {
-                if (typeof window[pClass] === 'undefined') return false;
-                const res = window[pClass].parse();
-                return !!(res.title && res.title.trim()) && !!(res.image && res.image.trim());
-            }, { timeout: 10000 }, parserClass);
-            console.log(`✅ MetaParser verified title and image loaded.`);
-        } catch (err) {
-            console.warn(`⚠️ Warning: Timed out waiting for title/image:`, err.message);
-        }
 
         // Evaluate extraction in page context
         const extractedData = await page.evaluate((parserClass, customShopName) => {
@@ -136,7 +139,7 @@ app.post('/scrape', async (req, res) => {
         }, parserClass, customShopName);
 
         console.log(`✅ Scraped successfully: ${url}`);
-        return res.json({ 
+        return res.json({
             title: extractedData.title,
             image: extractedData.image,
             desc: extractedData.desc,
