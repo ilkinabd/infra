@@ -1,9 +1,10 @@
-class DefaultParser {
+class MetaParser {
     static get selectors() {
         return [
             'meta[property="og:title"]',
             'meta[name="twitter:title"]',
             'meta[property="og:image"]',
+            'meta[name="twitter:image"]',
             'meta[name="description"]',
             'meta[property="og:description"]',
             'meta[itemprop="price"]',
@@ -106,9 +107,9 @@ class DefaultParser {
 }
 
 if (typeof window !== 'undefined') {
-    window.DefaultParser = DefaultParser;
+    window.MetaParser = MetaParser;
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = DefaultParser;
+    module.exports = MetaParser;
 }

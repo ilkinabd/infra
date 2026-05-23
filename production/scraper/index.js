@@ -80,25 +80,8 @@ app.post('/scrape', async (req, res) => {
         // Wait for lazy-loaded content to render after scroll
         await new Promise(resolve => setTimeout(resolve, 5000));
 
-        const urlObj = new URL(url);
-        const hostname = urlObj.hostname.toLowerCase();
-
-        let parserFile = 'DefaultParser.js';
-        let parserClass = 'DefaultParser';
-
-        if (hostname.includes('trendyol.com') || hostname.includes('trendlobby')) {
-            parserFile = 'TrendyolParser.js';
-            parserClass = 'TrendyolParser';
-        } else if (hostname.includes('amazon.')) {
-            parserFile = 'AmazonParser.js';
-            parserClass = 'AmazonParser';
-        } else if (hostname.includes('ebay.')) {
-            parserFile = 'EbayParser.js';
-            parserClass = 'EbayParser';
-        } else if (hostname.includes('hepsiburada.com')) {
-            parserFile = 'HepsiburadaParser.js';
-            parserClass = 'HepsiburadaParser';
-        }
+        let parserFile = 'MetaParser.js';
+        let parserClass = 'MetaParser';
 
         // Dynamically require the parser to retrieve its selectors
         const Parser = require(path.join(__dirname, 'parsers', parserFile));
