@@ -1,6 +1,8 @@
 const express = require('express');
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+const fs = require('fs');
+const path = require('path');
 puppeteer.use(StealthPlugin());
 
 const app = express();
@@ -34,7 +36,7 @@ async function initBrowser() {
 }
 
 app.post('/scrape', async (req, res) => {
-    const { url } = req.body;
+    const { url, shopName: customShopName } = req.body;
     if (!url) {
         return res.status(400).json({ error: 'url parameter is required' });
     }
@@ -78,11 +80,89 @@ app.post('/scrape', async (req, res) => {
         // Wait for lazy-loaded content to render after scroll
         await new Promise(resolve => setTimeout(resolve, 5000));
 
-        // Get final HTML content
-        const html = await page.content();
-        
-        console.log(`✅ Scraped successfully: ${url} (length: ${html.length})`);
-        return res.json({ html });
+        const urlObj = new URL(url);
+        const hostname = urlObj.hostname.toLowerCase();
+
+        let parserFile = 'DefaultParser.js';
+        let parserClass = 'DefaultParser';
+
+        if (hostname.includes('trendyol.com') || hostname.includes('trendlobby')) {
+            parserFile = 'TrendyolParser.js';
+            parserClass = 'TrendyolParser';
+        } else if (hostname.includes('amazon.')) {
+            parserFile = 'AmazonParser.js';
+            parserClass = 'AmazonParser';
+        } else if (hostname.includes('ebay.')) {
+            parserFile = 'EbayParser.js';
+            parserClass = 'EbayParser';
+        } else if (hostname.includes('hepsiburada.com')) {
+            parserFile = 'HepsiburadaParser.js';
+            parserClass = 'HepsiburadaParser';
+        }
+
+        // Dynamically require the parser to retrieve its selectors
+        const Parser = require(path.join(__dirname, 'parsers', parserFile));
+        const selectors = Parser.selectors || [];
+
+        if (selectors.length > 0) {
+            try {
+                await page.waitForFunction((selList) => {
+                    return selList.some(sel => !!document.querySelector(sel));
+                }, { timeout: 10000 }, selectors);
+                console.log(`✅ Found expected selectors for ${parserClass}.`);
+            } catch (err) {
+                console.warn(`⚠️ Warning: Timed out waiting for selectors:`, err.message);
+            }
+        }
+
+        // Inject the selected parser script onto the page
+        const parserContent = fs.readFileSync(path.join(__dirname, 'parsers', parserFile), 'utf8');
+        await page.evaluate(parserContent);
+
+        // Evaluate extraction in page context
+        const extractedData = await page.evaluate((parserClass, customShopName) => {
+            const parser = window[parserClass];
+            if (!parser) {
+                throw new Error(`Parser ${parserClass} not found on the window object`);
+            }
+
+            const res = parser.parse();
+
+            // Determine shopName
+            let shopName = 'İnternet Mağazası';
+            if (customShopName) {
+                shopName = customShopName;
+            } else {
+                const hostname = window.location.hostname.toLowerCase();
+                const hostClean = hostname.replace('www.', '');
+                const parts = hostClean.split('.');
+                if (parts.length >= 2) {
+                    const name = parts[parts.length - 2];
+                    shopName = name.charAt(0).toUpperCase() + name.slice(1);
+                } else {
+                    shopName = hostClean.charAt(0).toUpperCase() + hostClean.slice(1);
+                }
+            }
+
+            const cleanStr = (s) => typeof s === 'string' ? s.replace(/\s+/g, ' ').trim() : s;
+
+            return {
+                title: cleanStr(res.title) || null,
+                image: cleanStr(res.image) || null,
+                desc: cleanStr(res.desc) || null,
+                price: cleanStr(res.price) || null,
+                shopName: shopName
+            };
+        }, parserClass, customShopName);
+
+        console.log(`✅ Scraped successfully: ${url}`);
+        return res.json({ 
+            title: extractedData.title,
+            image: extractedData.image,
+            desc: extractedData.desc,
+            price: extractedData.price,
+            shopName: extractedData.shopName
+        });
 
     } catch (err) {
         console.error(`❌ Error scraping ${url}:`, err.message);

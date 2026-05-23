@@ -9,8 +9,9 @@ COPY --chown=pptruser:pptruser package.json ./
 # Install dependencies (puppeteer package will skip downloading Chromium since it's already installed in the image)
 RUN npm install
 
-# Copy application script
+# Copy application script and parsers
 COPY --chown=pptruser:pptruser index.js ./
+COPY --chown=pptruser:pptruser parsers/ ./parsers/
 
 EXPOSE 8085
 
