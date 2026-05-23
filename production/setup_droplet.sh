@@ -20,6 +20,8 @@ fi
 
 # 3. Setup Directories
 mkdir -p mailu/data mailu/config mailu/dkim mailu/mail mailu/overrides mailu/filter mailu/webmail mailu/certs
+mkdir -p scraper
+echo "📂 Directories ready."
 
 # 4. Handle TLS Configuration based on mode
 if [ "$MODE" == "local" ]; then
@@ -81,4 +83,5 @@ echo "Mode:     $MODE ($TLS_FLAVOR)"
 echo "Admin UI: https://[YOUR_IP]/admin"
 echo "Webmail:  https://[YOUR_IP]/webmail"
 echo "Database: [YOUR_IP]:5433"
+echo "Scraper:  [YOUR_IP]:8085 (internal)"
 echo "--------------------------------------------------"

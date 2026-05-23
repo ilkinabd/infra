@@ -14,6 +14,15 @@ services:
       - pg_data:/var/lib/postgresql/data
     networks:
       - lobbym-network
+  lobbym-scraper:
+    build:
+      context: ./scraper
+      dockerfile: Dockerfile
+    container_name: lobbym-scraper
+    ports:
+      - "8085:8085"
+    networks:
+      - lobbym-network
 
   redis:
     image: redis:7-alpine

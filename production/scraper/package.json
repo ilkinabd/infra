@@ -1,0 +1,12 @@
+{
+  "name": "lobbym-scraper",
+  "version": "1.0.0",
+  "description": "Lobbym browser emulator scraper service",
+  "main": "index.js",
+  "dependencies": {
+    "express": "^4.19.2",
+    "puppeteer": "^22.6.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
+  }
+}
