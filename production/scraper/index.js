@@ -51,52 +51,14 @@ app.post('/scrape', async (req, res) => {
         // Use standard screen viewport
         await page.setViewport({ width: 1920, height: 1080 });
 
-        // Navigate to the URL with robust waiting to avoid navigation errors
+        // Navigate to the URL with domcontentloaded waiting for fast meta tags extraction
         await page.goto(url, {
-            waitUntil: 'networkidle0', // wait until 0 network connections for 500ms (strictest)
-            timeout: 60000 // 60s timeout for slow pages
+            waitUntil: 'domcontentloaded',
+            timeout: 15000 // 15s timeout
         });
-
-        // Ensure the page's JS has fully executed and the DOM is ready
-        await page.waitForFunction('document.readyState === "complete"');
-
-        // Scroll down the page to trigger lazy-loaded content
-        await page.evaluate(async () => {
-            await new Promise((resolve) => {
-                let totalHeight = 0;
-                const distance = 300;
-                const timer = setInterval(() => {
-                    window.scrollBy(0, distance);
-                    totalHeight += distance;
-                    if (totalHeight >= document.body.scrollHeight) {
-                        clearInterval(timer);
-                        window.scrollTo(0, 0); // scroll back to top
-                        resolve();
-                    }
-                }, 100);
-            });
-        });
-
-        // Wait for lazy-loaded content to render after scroll
-        await new Promise(resolve => setTimeout(resolve, 5000));
 
         let parserFile = 'MetaParser.js';
         let parserClass = 'MetaParser';
-
-        // Dynamically require the parser to retrieve its selectors
-        const Parser = require(path.join(__dirname, 'parsers', parserFile));
-        const selectors = Parser.selectors || [];
-
-        if (selectors.length > 0) {
-            try {
-                await page.waitForFunction((selList) => {
-                    return selList.some(sel => !!document.querySelector(sel));
-                }, { timeout: 10000 }, selectors);
-                console.log(`✅ Found expected selectors for ${parserClass}.`);
-            } catch (err) {
-                console.warn(`⚠️ Warning: Timed out waiting for selectors:`, err.message);
-            }
-        }
 
         // Inject the selected parser script onto the page
         const parserContent = fs.readFileSync(path.join(__dirname, 'parsers', parserFile), 'utf8');
