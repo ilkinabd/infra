@@ -95,6 +95,9 @@ def parse_metadata(html_content, page_url, default_title=""):
     # Price extraction
     price = get_meta('product:price:amount') or get_meta('og:price:amount') or get_meta('price')
 
+    # Currency extraction
+    currency = get_meta('product:price:currency') or get_meta('og:price:currency') or get_meta('priceCurrency')
+
     # Fallbacks via JSON-LD
     if not title or is_block_title(title):
         title = clean_str(extract_from_json_ld(soup, 'name')) or title
@@ -110,7 +113,14 @@ def parse_metadata(html_content, page_url, default_title=""):
         if not price:
             itemprop_price = soup.find(attrs={'itemprop': 'price'})
             if itemprop_price:
-                price = itemprop_price.get('content')
+                price = itemprop_price.get('content') or itemprop_price.text
+
+    if not currency:
+        currency = extract_from_json_ld(soup, 'priceCurrency')
+        if not currency:
+            itemprop_currency = soup.find(attrs={'itemprop': 'priceCurrency'})
+            if itemprop_currency:
+                currency = itemprop_currency.get('content') or itemprop_currency.text
 
     # Final Image Fallbacks
     if not image:
@@ -130,11 +140,33 @@ def parse_metadata(html_content, page_url, default_title=""):
             except Exception:
                 pass
 
+    # Trim price and currency separately
+    formatted_price = clean_str(price)
+    clean_curr = clean_str(currency) if currency else ""
+
+    if formatted_price:
+        # If currency is not explicitly provided, try to extract it from the price string
+        if not clean_curr:
+            match = re.search(r'(?i)\b(TL|TRY|USD|EUR|GBP)\b|[\$\€\£\₺]', formatted_price)
+            if match:
+                clean_curr = match.group(0)
+        
+        # Strip currency code/symbol from price
+        if clean_curr:
+            formatted_price = re.sub(re.escape(clean_curr), '', formatted_price, flags=re.IGNORECASE)
+        
+        # Clean any remaining common symbols/words from price
+        formatted_price = re.sub(r'(?i)\b(TL|TRY|USD|EUR|GBP)\b', '', formatted_price)
+        formatted_price = re.sub(r'[\$\€\£\₺]', '', formatted_price)
+        formatted_price = formatted_price.strip()
+        formatted_price = re.sub(r'^[\s\-–—/]+|[\s\-–—/]+$', '', formatted_price)
+
     return {
         'title': title,
         'image': image,
         'desc': clean_str(desc),
-        'price': clean_str(price)
+        'price': formatted_price,
+        'currency': clean_curr
     }
 
 def get_shop_name(url, custom_shop_name=None):
