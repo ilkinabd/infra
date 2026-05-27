@@ -25,6 +25,7 @@ function show_help() {
     echo "  logs [service]                        - Watch container logs"
     echo "  status                                - Show container status"
     echo "  scraper-restart                       - Restart the scraper container"
+    echo "  scraper-rebuild                       - Rebuild and restart the scraper container"
 }
 
 case "$1" in
@@ -78,6 +79,10 @@ case "$1" in
 
     scraper-restart)
         docker compose restart lobbym-scraper
+        ;;
+
+    scraper-rebuild)
+        docker compose up -d --build lobbym-scraper
         ;;
 
     *)
