@@ -24,7 +24,7 @@ services:
     networks:
       - lobbym-network
     environment:
-      - SCRAPER_PROXY=gkxoynov:zb2lsvs6o9uv@31.59.20.176:6754
+      - SCRAPER_PROXY=gkxoynov-tr-rotate:zb2lsvs6o9uv@p.webshare.io:80
 
 
   redis:
