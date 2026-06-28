@@ -56,12 +56,14 @@ def scraper_worker():
                     
                     if os.environ.get('SCRAPER_PROXY'):
                         try:
-                            print(f"Activating CDP mode for proxy authentication (attempt {attempt})...")
+                            print(f"Activating CDP mode for proxy authentication and navigation (attempt {attempt})...")
                             global_sb.activate_cdp_mode(url)
                         except Exception as cdp_act_err:
                             print(f"Warning: Failed to activate CDP mode (attempt {attempt}): {str(cdp_act_err)}")
-                            
-                    global_sb.uc_open_with_reconnect(url, 4)
+                            global_sb.uc_open_with_reconnect(url, 4)
+                    else:
+                        global_sb.uc_open_with_reconnect(url, 4)
+                        
                     html_content = global_sb.get_page_source()
                     page_title = global_sb.get_title()
                     
