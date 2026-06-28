@@ -35,26 +35,8 @@ def init_browser():
     global_sb = global_sb_context.__enter__()
 
 
-    print("Opening google.com first on startup/re-init...")
+    print("Global SeleniumBase instance initialized successfully.")
 
-    try:
-        global_sb.uc_open_with_reconnect("https://www.google.com", 4)
-        global_sb.sleep(2)
-        print("Global SeleniumBase instance initialized and warmed up successfully.")
-        
-        # Set Turkish storefront cookies for Trendyol domain
-        try:
-            print("Setting Turkish storefront cookies on startup...")
-            global_sb.open("https://www.trendyol.com/robots.txt")
-            global_sb.add_cookie({"name": "storefrontId", "value": "1", "domain": ".trendyol.com", "path": "/"})
-            global_sb.add_cookie({"name": "countryCode", "value": "TR", "domain": ".trendyol.com", "path": "/"})
-            global_sb.add_cookie({"name": "language", "value": "tr", "domain": ".trendyol.com", "path": "/"})
-            print("Turkish storefront cookies injected successfully.")
-        except Exception as cookie_err:
-            print(f"Warning: Failed to set storefront cookies: {str(cookie_err)}")
-            
-    except Exception as e:
-        print(f"Error warming up browser: {str(e)}")
 
 
 def scraper_worker():
