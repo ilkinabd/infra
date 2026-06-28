@@ -25,6 +25,8 @@ services:
       - lobbym-network
     environment:
       - SCRAPER_PROXY=gkxoynov-tr-rotate:zb2lsvs6o9uv@p.webshare.io:80
+      - PYTHONUNBUFFERED=1
+
 
 
   redis:
