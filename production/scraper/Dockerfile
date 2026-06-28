@@ -28,6 +28,9 @@ WORKDIR /app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Pre-install ChromeDriver matching the installed Chrome version
+RUN seleniumbase install chromedriver
+
 COPY app.py ./
 
 EXPOSE 8085
