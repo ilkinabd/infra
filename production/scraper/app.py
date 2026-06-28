@@ -63,8 +63,9 @@ def scraper_worker():
                     html_content = global_page.html
                     page_title = global_page.title
                     
-                    if is_block_title(page_title) or (page_title and page_title.lower() == 'etsy.com') or 'datadome' in html_content.lower():
+                    if is_block_title(page_title) or (page_title and page_title.lower() in ('etsy.com', 'www.etsy.com')) or 'datadome' in html_content.lower():
                         raise Exception(f"Failed to bypass anti-bot protection. Title: {page_title}")
+
                     
                     response_queue.put((html_content, page_title, None))
                     success = True
