@@ -318,14 +318,20 @@ def scrape():
             soup = BeautifulSoup(html_content, 'html.parser')
             page_title = soup.title.string if soup.title else ""
             
-            if not is_block_title(page_title):
+            is_datadome = 'x-datadome' in res.headers or 'datadome' in html_content.lower()
+            
+            if not is_block_title(page_title) and not is_datadome:
                 parsed = parse_metadata(html_content, url, default_title=page_title)
                 if parsed and parsed.get('title'):
                     parsed['shopName'] = get_shop_name(url, custom_shop_name)
                     print(f"✅ Scraped successfully via Layer 1 (curl_cffi): {url}")
                     return jsonify(parsed)
             else:
-                print(f"Layer 1 blocked by access denial or captcha page title. Title was: {page_title}")
+                if is_datadome:
+                    print("Layer 1 blocked by DataDome protection page.")
+                else:
+                    print(f"Layer 1 blocked by access denial or captcha page title. Title was: {page_title}")
+
         else:
             print(f"Layer 1 failed with status code: {res.status_code}")
             try:
