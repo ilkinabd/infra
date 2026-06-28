@@ -73,6 +73,13 @@ def scraper_worker():
                 if global_sb is None:
                     init_browser()
                 
+                if os.environ.get('SCRAPER_PROXY'):
+                    try:
+                        print("Activating CDP mode for proxy authentication...")
+                        global_sb.activate_cdp_mode(url)
+                    except Exception as cdp_act_err:
+                        print(f"Warning: Failed to activate CDP mode: {str(cdp_act_err)}")
+                
                 global_sb.uc_open_with_reconnect(url, 4)
                 html_content = global_sb.get_page_source()
                 page_title = global_sb.get_title()
@@ -85,6 +92,13 @@ def scraper_worker():
                 print(f"Worker browser error: {str(browser_err)}. Re-initializing...")
                 try:
                     init_browser()
+                    if os.environ.get('SCRAPER_PROXY'):
+                        try:
+                            print("Activating CDP mode for proxy authentication on retry...")
+                            global_sb.activate_cdp_mode(url)
+                        except Exception as cdp_act_err:
+                            print(f"Warning: Failed to activate CDP mode on retry: {str(cdp_act_err)}")
+                            
                     global_sb.uc_open_with_reconnect(url, 4)
                     html_content = global_sb.get_page_source()
                     page_title = global_sb.get_title()
@@ -95,6 +109,7 @@ def scraper_worker():
                     response_queue.put((html_content, page_title, None))
                 except Exception as retry_err:
                     response_queue.put((None, None, retry_err))
+
 
             finally:
                 task_queue.task_done()
