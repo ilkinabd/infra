@@ -273,64 +273,73 @@ def scrape():
     if not url:
         return jsonify({'error': 'url parameter is required'}), 400
         
-    print(f"🔍 Scraping: {url}")
-    
-    # 1. Katman: curl_cffi HTTP Request
+    skip_layer1_domains = ('etsy.com',)
+    skip_layer1 = False
     try:
-        print("Layer 1: curl_cffi request...")
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-            "Accept-Language": "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
-            "Referer": "https://www.google.com/",
-        }
-        cookies = {
-            "storefrontId": "1",
-            "countryCode": "TR",
-            "language": "tr"
-        }
-        proxy_env = os.environ.get('SCRAPER_PROXY')
-        proxies = None
-        if proxy_env:
-            proxies = {
-                "http": f"http://{proxy_env}",
-                "https": f"http://{proxy_env}"
-            }
-        res = requests_cffi.get(url, impersonate="chrome120", headers=headers, cookies=cookies, proxies=proxies, timeout=10)
-
-
-
+        parsed_url = urlparse(url)
+        domain = parsed_url.netloc.lower()
+        if any(d in domain for d in skip_layer1_domains):
+            skip_layer1 = True
+    except Exception:
+        pass
         
-        if res.status_code == 200:
-            html_content = res.text
-            soup = BeautifulSoup(html_content, 'html.parser')
-            page_title = soup.title.string if soup.title else ""
-            
-            is_datadome = 'x-datadome' in res.headers or 'datadome' in html_content.lower()
-            
-            if not is_block_title(page_title) and not is_datadome:
-                parsed = parse_metadata(html_content, url, default_title=page_title)
-                if parsed and parsed.get('title'):
-                    parsed['shopName'] = get_shop_name(url, custom_shop_name)
-                    print(f"✅ Scraped successfully via Layer 1 (curl_cffi): {url}")
-                    return jsonify(parsed)
-            else:
-                if is_datadome:
-                    print("Layer 1 blocked by DataDome protection page.")
-                else:
-                    print(f"Layer 1 blocked by access denial or captcha page title. Title was: {page_title}")
+    if skip_layer1:
+        print(f"Skipping Layer 1 (curl_cffi) for domain: {domain}")
+    else:
+        # 1. Katman: curl_cffi HTTP Request
+        try:
+            print("Layer 1: curl_cffi request...")
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+                "Accept-Language": "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
+                "Referer": "https://www.google.com/",
+            }
+            cookies = {
+                "storefrontId": "1",
+                "countryCode": "TR",
+                "language": "tr"
+            }
+            proxy_env = os.environ.get('SCRAPER_PROXY')
+            proxies = None
+            if proxy_env:
+                proxies = {
+                    "http": f"http://{proxy_env}",
+                    "https": f"http://{proxy_env}"
+                }
+            res = requests_cffi.get(url, impersonate="chrome120", headers=headers, cookies=cookies, proxies=proxies, timeout=10)
 
-        else:
-            print(f"Layer 1 failed with status code: {res.status_code}")
-            try:
-                print(f"Layer 1 Response headers: {dict(res.headers)}")
-                print(f"Layer 1 Response body (first 500 chars): {res.text[:500]}")
-            except Exception:
-                pass
-            
-    except Exception as e:
-        print(f"Layer 1 failed with exception: {str(e)}")
-        traceback.print_exc()
+            if res.status_code == 200:
+                html_content = res.text
+                soup = BeautifulSoup(html_content, 'html.parser')
+                page_title = soup.title.string if soup.title else ""
+                
+                is_datadome = 'x-datadome' in res.headers or 'datadome' in html_content.lower()
+                
+                if not is_block_title(page_title) and not is_datadome:
+                    parsed = parse_metadata(html_content, url, default_title=page_title)
+                    if parsed and parsed.get('title'):
+                        parsed['shopName'] = get_shop_name(url, custom_shop_name)
+                        print(f"✅ Scraped successfully via Layer 1 (curl_cffi): {url}")
+                        return jsonify(parsed)
+                else:
+                    if is_datadome:
+                        print("Layer 1 blocked by DataDome protection page.")
+                    else:
+                        print(f"Layer 1 blocked by access denial or captcha page title. Title was: {page_title}")
+
+            else:
+                print(f"Layer 1 failed with status code: {res.status_code}")
+                try:
+                    print(f"Layer 1 Response headers: {dict(res.headers)}")
+                    print(f"Layer 1 Response body (first 500 chars): {res.text[:500]}")
+                except Exception:
+                    pass
+                
+        except Exception as e:
+            print(f"Layer 1 failed with exception: {str(e)}")
+            traceback.print_exc()
+
 
     # 2. Katman: SeleniumBase (Fallback)
     print("Layer 2: SeleniumBase fallback (routing through background worker thread)...")
