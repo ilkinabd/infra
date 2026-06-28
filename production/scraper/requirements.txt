@@ -1,4 +1,4 @@
 flask
-seleniumbase
+DrissionPage
 beautifulsoup4
 curl_cffi

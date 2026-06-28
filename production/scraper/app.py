@@ -3,7 +3,7 @@ import os
 import re
 from urllib.parse import urlparse, urljoin
 from flask import Flask, request, jsonify
-from seleniumbase import SB
+from DrissionPage import ChromiumPage, ChromiumOptions
 from bs4 import BeautifulSoup
 from curl_cffi import requests as requests_cffi
 from threading import Thread
@@ -13,33 +13,36 @@ import traceback
 app = Flask(__name__)
 
 # Global variables for browser worker
-global_sb = None
-global_sb_context = None
+global_page = None
 task_queue = Queue()
 
 def init_browser():
-    global global_sb, global_sb_context
+    global global_page
     close_browser()
     
-    print("Initializing global SeleniumBase instance...")
+    print("Initializing global DrissionPage ChromiumPage instance...")
+    co = ChromiumOptions()
+    co.set_argument('--no-sandbox')
+    co.set_argument('--disable-gpu')
+    co.set_argument('--disable-dev-shm-usage')
+    co.headless(True)
+    
     proxy_env = os.environ.get('SCRAPER_PROXY')
     if proxy_env:
-        print(f"Using configured proxy for SeleniumBase: {proxy_env}")
-        global_sb_context = SB(uc=True, xvfb=True, locale_code="tr", proxy=proxy_env)
-    else:
-        global_sb_context = SB(uc=True, xvfb=True, locale_code="tr")
-    global_sb = global_sb_context.__enter__()
-    print("Global SeleniumBase instance initialized successfully.")
+        print(f"Using configured proxy for DrissionPage: {proxy_env}")
+        co.set_proxy(f"http://{proxy_env}")
+        
+    global_page = ChromiumPage(co)
+    print("Global DrissionPage instance initialized successfully.")
 
 def close_browser():
-    global global_sb, global_sb_context
-    if global_sb_context:
+    global global_page
+    if global_page:
         try:
-            global_sb_context.__exit__(None, None, None)
+            global_page.quit()
         except Exception:
             pass
-    global_sb = None
-    global_sb_context = None
+    global_page = None
 
 def scraper_worker():
     while True:
@@ -47,50 +50,35 @@ def scraper_worker():
             url, custom_shop_name, response_queue = task_queue.get()
             print(f"Worker thread processing: {url}")
             
-            try:
-                init_browser()
-                
-                if os.environ.get('SCRAPER_PROXY'):
-                    try:
-                        print("Activating CDP mode for proxy authentication...")
-                        global_sb.activate_cdp_mode(url)
-                    except Exception as cdp_act_err:
-                        print(f"Warning: Failed to activate CDP mode: {str(cdp_act_err)}")
-                
-                global_sb.uc_open_with_reconnect(url, 4)
-                html_content = global_sb.get_page_source()
-                page_title = global_sb.get_title()
-                
-                if is_block_title(page_title) or (page_title and page_title.lower() == 'etsy.com') or 'datadome' in html_content.lower():
-                    raise Exception(f"Failed to bypass anti-bot protection. Title: {page_title}")
-                    
-                response_queue.put((html_content, page_title, None))
-            except Exception as browser_err:
-                print(f"Worker browser error: {str(browser_err)}. Re-initializing...")
+            max_retries = 3
+            success = False
+            
+            for attempt in range(1, max_retries + 1):
                 try:
                     init_browser()
-                    if os.environ.get('SCRAPER_PROXY'):
-                        try:
-                            print("Activating CDP mode for proxy authentication on retry...")
-                            global_sb.activate_cdp_mode(url)
-                        except Exception as cdp_act_err:
-                            print(f"Warning: Failed to activate CDP mode on retry: {str(cdp_act_err)}")
-                            
-                    global_sb.uc_open_with_reconnect(url, 4)
-                    html_content = global_sb.get_page_source()
-                    page_title = global_sb.get_title()
+                    
+                    print(f"DrissionPage loading URL (attempt {attempt}): {url}")
+                    global_page.get(url)
+                    
+                    html_content = global_page.html
+                    page_title = global_page.title
                     
                     if is_block_title(page_title) or (page_title and page_title.lower() == 'etsy.com') or 'datadome' in html_content.lower():
-                        raise Exception(f"Failed to bypass anti-bot protection on retry. Title: {page_title}")
-                        
+                        raise Exception(f"Failed to bypass anti-bot protection. Title: {page_title}")
+                    
                     response_queue.put((html_content, page_title, None))
-                except Exception as retry_err:
-                    response_queue.put((None, None, retry_err))
-            finally:
-                close_browser()
-                task_queue.task_done()
+                    success = True
+                    break
+                except Exception as browser_err:
+                    print(f"Worker browser error (attempt {attempt}/{max_retries}): {str(browser_err)}")
+                    if attempt == max_retries:
+                        response_queue.put((None, None, browser_err))
+            
+            close_browser()
+            task_queue.task_done()
         except Exception as worker_err:
             print(f"Fatal worker error: {str(worker_err)}")
+
 
 
 
