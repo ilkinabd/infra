@@ -23,6 +23,9 @@ services:
       - "8085:8085"
     networks:
       - lobbym-network
+    environment:
+      - SCRAPER_PROXY=gkxoynov:zb2lsvs6o9uv@31.59.20.176:6754
+
 
   redis:
     image: redis:7-alpine

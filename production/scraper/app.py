@@ -26,26 +26,15 @@ def init_browser():
             pass
     
     print("Initializing global SeleniumBase instance...")
-    global_sb_context = SB(uc=True, xvfb=True, locale_code="tr")
+    proxy_env = os.environ.get('SCRAPER_PROXY')
+    if proxy_env:
+        print(f"Using configured proxy for SeleniumBase: {proxy_env}")
+        global_sb_context = SB(uc=True, xvfb=True, locale_code="tr", proxy=proxy_env)
+    else:
+        global_sb_context = SB(uc=True, xvfb=True, locale_code="tr")
     global_sb = global_sb_context.__enter__()
-    
-    try:
-        print("Injecting Turkish localization headers into browser via CDP...")
-        global_sb.execute_cdp_cmd('Network.enable', {})
-        global_sb.execute_cdp_cmd('Network.setExtraHTTPHeaders', {
-            'headers': {
-                "X-Country-Id": "TR",
-                "X-Language-Id": "TR",
-                "X-Currency-Id": "TRY",
-                "X-Storefront-Id": "1",
-                "X-Country-Code": "TR",
-                "X-Language-Code": "TR"
-            }
-        })
-        print("CDP headers injection configured successfully.")
-    except Exception as cdp_err:
-        print(f"Warning: Failed to configure CDP headers injection: {str(cdp_err)}")
-        
+
+
     print("Opening google.com first on startup/re-init...")
 
     try:
@@ -68,37 +57,6 @@ def init_browser():
         print(f"Error warming up browser: {str(e)}")
 
 
-def open_with_cf_bypass(url):
-    global global_sb
-    global_sb.uc_open_with_reconnect(url, 4)
-    html_content = global_sb.get_page_source()
-    page_title = global_sb.get_title()
-    
-    if is_block_title(page_title):
-        print("Cloudflare/captcha block page detected in SeleniumBase. Attempting uc_bypass_cloudflare()...")
-        try:
-            global_sb.uc_bypass_cloudflare()
-            global_sb.sleep(4)
-            html_content = global_sb.get_page_source()
-            page_title = global_sb.get_title()
-        except Exception as bypass_err:
-            print(f"uc_bypass_cloudflare failed: {str(bypass_err)}")
-            
-    if is_block_title(page_title):
-        print("Still blocked by Cloudflare. Attempting uc_gui_handle_captcha()...")
-        try:
-            global_sb.uc_gui_handle_captcha()
-            global_sb.sleep(4)
-            html_content = global_sb.get_page_source()
-            page_title = global_sb.get_title()
-        except Exception as captcha_err:
-            print(f"uc_gui_handle_captcha failed: {str(captcha_err)}")
-            
-    if is_block_title(page_title):
-        raise Exception(f"Failed to bypass Cloudflare protection. Title remains: {page_title}")
-        
-    return html_content, page_title
-
 def scraper_worker():
     global global_sb
     try:
@@ -115,16 +73,29 @@ def scraper_worker():
                 if global_sb is None:
                     init_browser()
                 
-                html_content, page_title = open_with_cf_bypass(url)
+                global_sb.uc_open_with_reconnect(url, 4)
+                html_content = global_sb.get_page_source()
+                page_title = global_sb.get_title()
+                
+                if is_block_title(page_title):
+                    raise Exception(f"Failed to bypass Cloudflare protection. Title remains: {page_title}")
+                    
                 response_queue.put((html_content, page_title, None))
             except Exception as browser_err:
                 print(f"Worker browser error: {str(browser_err)}. Re-initializing...")
                 try:
                     init_browser()
-                    html_content, page_title = open_with_cf_bypass(url)
+                    global_sb.uc_open_with_reconnect(url, 4)
+                    html_content = global_sb.get_page_source()
+                    page_title = global_sb.get_title()
+                    
+                    if is_block_title(page_title):
+                        raise Exception(f"Failed to bypass Cloudflare protection on retry. Title remains: {page_title}")
+                        
                     response_queue.put((html_content, page_title, None))
                 except Exception as retry_err:
                     response_queue.put((None, None, retry_err))
+
             finally:
                 task_queue.task_done()
         except Exception as worker_err:
@@ -327,20 +298,21 @@ def scrape():
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
             "Accept-Language": "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
             "Referer": "https://www.google.com/",
-            "X-Country-Id": "TR",
-            "X-Language-Id": "TR",
-            "X-Currency-Id": "TRY",
-            "X-Storefront-Id": "1",
-            "X-Country-Code": "TR",
-            "X-Language-Code": "TR",
-
         }
         cookies = {
             "storefrontId": "1",
             "countryCode": "TR",
             "language": "tr"
         }
-        res = requests_cffi.get(url, impersonate="chrome120", headers=headers, cookies=cookies, timeout=10)
+        proxy_env = os.environ.get('SCRAPER_PROXY')
+        proxies = None
+        if proxy_env:
+            proxies = {
+                "http": f"http://{proxy_env}",
+                "https": f"http://{proxy_env}"
+            }
+        res = requests_cffi.get(url, impersonate="chrome120", headers=headers, cookies=cookies, proxies=proxies, timeout=10)
+
 
 
         
