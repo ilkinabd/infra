@@ -66,8 +66,8 @@ def scraper_worker():
                 html_content = global_sb.get_page_source()
                 page_title = global_sb.get_title()
                 
-                if is_block_title(page_title):
-                    raise Exception(f"Failed to bypass Cloudflare protection. Title remains: {page_title}")
+                if is_block_title(page_title) or (page_title and page_title.lower() == 'etsy.com') or 'datadome' in html_content.lower():
+                    raise Exception(f"Failed to bypass anti-bot protection. Title: {page_title}")
                     
                 response_queue.put((html_content, page_title, None))
             except Exception as browser_err:
@@ -85,12 +85,13 @@ def scraper_worker():
                     html_content = global_sb.get_page_source()
                     page_title = global_sb.get_title()
                     
-                    if is_block_title(page_title):
-                        raise Exception(f"Failed to bypass Cloudflare protection on retry. Title remains: {page_title}")
+                    if is_block_title(page_title) or (page_title and page_title.lower() == 'etsy.com') or 'datadome' in html_content.lower():
+                        raise Exception(f"Failed to bypass anti-bot protection on retry. Title: {page_title}")
                         
                     response_queue.put((html_content, page_title, None))
                 except Exception as retry_err:
                     response_queue.put((None, None, retry_err))
+
 
 
             finally:
