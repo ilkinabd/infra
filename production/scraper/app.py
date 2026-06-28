@@ -19,11 +19,7 @@ task_queue = Queue()
 
 def init_browser():
     global global_sb, global_sb_context
-    if global_sb_context:
-        try:
-            global_sb_context.__exit__(None, None, None)
-        except Exception:
-            pass
+    close_browser()
     
     print("Initializing global SeleniumBase instance...")
     proxy_env = os.environ.get('SCRAPER_PROXY')
@@ -33,27 +29,26 @@ def init_browser():
     else:
         global_sb_context = SB(uc=True, xvfb=True, locale_code="tr")
     global_sb = global_sb_context.__enter__()
-
-
     print("Global SeleniumBase instance initialized successfully.")
 
-
+def close_browser():
+    global global_sb, global_sb_context
+    if global_sb_context:
+        try:
+            global_sb_context.__exit__(None, None, None)
+        except Exception:
+            pass
+    global_sb = None
+    global_sb_context = None
 
 def scraper_worker():
-    global global_sb
-    try:
-        init_browser()
-    except Exception as e:
-        print(f"Warning: Failed to initialize browser on startup: {str(e)}")
-        
     while True:
         try:
             url, custom_shop_name, response_queue = task_queue.get()
             print(f"Worker thread processing: {url}")
             
             try:
-                if global_sb is None:
-                    init_browser()
+                init_browser()
                 
                 if os.environ.get('SCRAPER_PROXY'):
                     try:
@@ -91,13 +86,12 @@ def scraper_worker():
                     response_queue.put((html_content, page_title, None))
                 except Exception as retry_err:
                     response_queue.put((None, None, retry_err))
-
-
-
             finally:
+                close_browser()
                 task_queue.task_done()
         except Exception as worker_err:
             print(f"Fatal worker error: {str(worker_err)}")
+
 
 
 def find_in_obj(obj, target_key):
