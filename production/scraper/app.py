@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup
 from curl_cffi import requests as requests_cffi
 from threading import Thread
 from queue import Queue
+import traceback
 
 app = Flask(__name__)
 
@@ -316,12 +317,18 @@ def scrape():
                     print(f"✅ Scraped successfully via Layer 1 (curl_cffi): {url}")
                     return jsonify(parsed)
             else:
-                print("Layer 1 blocked by access denial or captcha page title.")
+                print(f"Layer 1 blocked by access denial or captcha page title. Title was: {page_title}")
         else:
             print(f"Layer 1 failed with status code: {res.status_code}")
+            try:
+                print(f"Layer 1 Response headers: {dict(res.headers)}")
+                print(f"Layer 1 Response body (first 500 chars): {res.text[:500]}")
+            except Exception:
+                pass
             
     except Exception as e:
         print(f"Layer 1 failed with exception: {str(e)}")
+        traceback.print_exc()
 
     # 2. Katman: SeleniumBase (Fallback)
     print("Layer 2: SeleniumBase fallback (routing through background worker thread)...")
@@ -347,6 +354,7 @@ def scrape():
 
     except Exception as e:
         print(f"❌ Layer 2 Error scraping {url}: {str(e)}")
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 @app.route('/health', methods=['GET'])
