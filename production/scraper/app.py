@@ -347,7 +347,7 @@ def scrape():
         response_queue = Queue()
         task_queue.put((url, custom_shop_name, response_queue))
         
-        html_content, page_title, err = response_queue.get(timeout=40)
+        html_content, page_title, err = response_queue.get(timeout=80)
         if err:
             raise err
             
