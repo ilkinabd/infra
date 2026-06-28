@@ -68,6 +68,37 @@ def init_browser():
         print(f"Error warming up browser: {str(e)}")
 
 
+def open_with_cf_bypass(url):
+    global global_sb
+    global_sb.uc_open_with_reconnect(url, 4)
+    html_content = global_sb.get_page_source()
+    page_title = global_sb.get_title()
+    
+    if is_block_title(page_title):
+        print("Cloudflare/captcha block page detected in SeleniumBase. Attempting uc_bypass_cloudflare()...")
+        try:
+            global_sb.uc_bypass_cloudflare()
+            global_sb.sleep(4)
+            html_content = global_sb.get_page_source()
+            page_title = global_sb.get_title()
+        except Exception as bypass_err:
+            print(f"uc_bypass_cloudflare failed: {str(bypass_err)}")
+            
+    if is_block_title(page_title):
+        print("Still blocked by Cloudflare. Attempting uc_gui_handle_captcha()...")
+        try:
+            global_sb.uc_gui_handle_captcha()
+            global_sb.sleep(4)
+            html_content = global_sb.get_page_source()
+            page_title = global_sb.get_title()
+        except Exception as captcha_err:
+            print(f"uc_gui_handle_captcha failed: {str(captcha_err)}")
+            
+    if is_block_title(page_title):
+        raise Exception(f"Failed to bypass Cloudflare protection. Title remains: {page_title}")
+        
+    return html_content, page_title
+
 def scraper_worker():
     global global_sb
     try:
@@ -84,18 +115,13 @@ def scraper_worker():
                 if global_sb is None:
                     init_browser()
                 
-                global_sb.uc_open_with_reconnect(url, 4)
-                html_content = global_sb.get_page_source()
-                page_title = global_sb.get_title()
-                
+                html_content, page_title = open_with_cf_bypass(url)
                 response_queue.put((html_content, page_title, None))
             except Exception as browser_err:
                 print(f"Worker browser error: {str(browser_err)}. Re-initializing...")
                 try:
                     init_browser()
-                    global_sb.uc_open_with_reconnect(url, 4)
-                    html_content = global_sb.get_page_source()
-                    page_title = global_sb.get_title()
+                    html_content, page_title = open_with_cf_bypass(url)
                     response_queue.put((html_content, page_title, None))
                 except Exception as retry_err:
                     response_queue.put((None, None, retry_err))
@@ -103,6 +129,7 @@ def scraper_worker():
                 task_queue.task_done()
         except Exception as worker_err:
             print(f"Fatal worker error: {str(worker_err)}")
+
 
 def find_in_obj(obj, target_key):
     if not obj:
