@@ -26,16 +26,47 @@ def init_browser():
             pass
     
     print("Initializing global SeleniumBase instance...")
-    global_sb_context = SB(uc=True, xvfb=True)
+    global_sb_context = SB(uc=True, xvfb=True, locale_code="tr")
     global_sb = global_sb_context.__enter__()
     
+    try:
+        print("Injecting Turkish localization headers into browser via CDP...")
+        global_sb.execute_cdp_cmd('Network.enable', {})
+        global_sb.execute_cdp_cmd('Network.setExtraHTTPHeaders', {
+            'headers': {
+                "X-Country-Id": "TR",
+                "X-Language-Id": "TR",
+                "X-Currency-Id": "TRY",
+                "X-Storefront-Id": "1",
+                "X-Country-Code": "TR",
+                "X-Language-Code": "TR"
+            }
+        })
+        print("CDP headers injection configured successfully.")
+    except Exception as cdp_err:
+        print(f"Warning: Failed to configure CDP headers injection: {str(cdp_err)}")
+        
     print("Opening google.com first on startup/re-init...")
+
     try:
         global_sb.uc_open_with_reconnect("https://www.google.com", 4)
         global_sb.sleep(2)
         print("Global SeleniumBase instance initialized and warmed up successfully.")
+        
+        # Set Turkish storefront cookies for Trendyol domain
+        try:
+            print("Setting Turkish storefront cookies on startup...")
+            global_sb.open("https://www.trendyol.com/robots.txt")
+            global_sb.add_cookie({"name": "storefrontId", "value": "1", "domain": ".trendyol.com", "path": "/"})
+            global_sb.add_cookie({"name": "countryCode", "value": "TR", "domain": ".trendyol.com", "path": "/"})
+            global_sb.add_cookie({"name": "language", "value": "tr", "domain": ".trendyol.com", "path": "/"})
+            print("Turkish storefront cookies injected successfully.")
+        except Exception as cookie_err:
+            print(f"Warning: Failed to set storefront cookies: {str(cookie_err)}")
+            
     except Exception as e:
         print(f"Error warming up browser: {str(e)}")
+
 
 def scraper_worker():
     global global_sb
@@ -234,34 +265,6 @@ def parse_metadata(html_content, page_url, default_title=""):
         'currency': clean_curr
     }
 
-def parse_hepsiburada(html_content, page_url, custom_shop_name=None):
-    match = re.search(r'productState\s*=\s*({.*?});', html_content, re.DOTALL)
-    if not match:
-        match = re.search(r'__PRODUCT_STATE__\s*=\s*({.*?});', html_content, re.DOTALL)
-    if match:
-        try:
-            state_data = json.loads(match.group(1))
-            product_data = state_data.get('product', {})
-            title = product_data.get('name')
-            images = product_data.get('images', [])
-            image = images[0] if images else None
-            price_details = product_data.get('price', {})
-            price = price_details.get('value')
-            currency = price_details.get('currency', 'TL')
-            merchant = product_data.get('merchant', {})
-            shop_name = custom_shop_name or merchant.get('name') or get_shop_name(page_url)
-            return {
-                'title': clean_str(title),
-                'image': clean_str(image) if image else None,
-                'desc': clean_str(product_data.get('description', '')),
-                'price': str(price) if price else None,
-                'currency': clean_str(currency),
-                'shopName': clean_str(shop_name)
-            }
-        except Exception:
-            pass
-    return None
-
 def get_shop_name(url, custom_shop_name=None):
     if custom_shop_name:
         return custom_shop_name
@@ -297,8 +300,21 @@ def scrape():
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
             "Accept-Language": "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
             "Referer": "https://www.google.com/",
+            "X-Country-Id": "TR",
+            "X-Language-Id": "TR",
+            "X-Currency-Id": "TRY",
+            "X-Storefront-Id": "1",
+            "X-Country-Code": "TR",
+            "X-Language-Code": "TR",
+
         }
-        res = requests_cffi.get(url, impersonate="chrome120", headers=headers, timeout=10)
+        cookies = {
+            "storefrontId": "1",
+            "countryCode": "TR",
+            "language": "tr"
+        }
+        res = requests_cffi.get(url, impersonate="chrome120", headers=headers, cookies=cookies, timeout=10)
+
 
         
         if res.status_code == 200:
@@ -307,12 +323,6 @@ def scrape():
             page_title = soup.title.string if soup.title else ""
             
             if not is_block_title(page_title):
-                if 'hepsiburada.com' in url.lower():
-                    parsed = parse_hepsiburada(html_content, url, custom_shop_name)
-                    if parsed and parsed.get('title'):
-                        print(f"✅ Scraped successfully via Layer 1 (Hepsiburada Custom): {url}")
-                        return jsonify(parsed)
-                
                 parsed = parse_metadata(html_content, url, default_title=page_title)
                 if parsed and parsed.get('title'):
                     parsed['shopName'] = get_shop_name(url, custom_shop_name)
@@ -342,12 +352,6 @@ def scrape():
         if err:
             raise err
             
-        if 'hepsiburada.com' in url.lower():
-            parsed = parse_hepsiburada(html_content, url, custom_shop_name)
-            if parsed and parsed.get('title'):
-                print(f"✅ Scraped successfully via Layer 2 (Hepsiburada Custom): {url}")
-                return jsonify(parsed)
-        
         parsed = parse_metadata(html_content, url, default_title=page_title)
         parsed['shopName'] = get_shop_name(url, custom_shop_name)
         
