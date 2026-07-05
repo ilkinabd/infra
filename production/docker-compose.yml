@@ -130,6 +130,22 @@ services:
       - ./mailu/webmail:/data
     networks:
       - lobbym-network
+  lobbym-socket:
+    build:
+      context: ./socket
+      dockerfile: Dockerfile
+    container_name: lobbym-socket
+    restart: always
+    ports:
+      - "3002:3000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/lobbym
+      - JWT_SECRET=hCn5nyx49PHVeSbN1Aajzh5XUHNOj6xZ5CCupG3Pgl4xzNlv3sirodDRF6N2EnCY
+      - PORT=3000
+    depends_on:
+      - db
+    networks:
+      - lobbym-network
 
 volumes:
   pg_data:

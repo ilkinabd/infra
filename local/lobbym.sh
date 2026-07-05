@@ -9,7 +9,19 @@ error_exit() {
 trap 'error_exit $LINENO' ERR
 
 # Configuration
-MODE=${1:-prod}
+MODE="prod"
+MIGRATE=true
+
+# Parse arguments
+while [[ "$#" -gt 0 ]]; do
+  case $1 in
+    dev|prod) MODE="$1" ;;
+    --no-migrate) MIGRATE=false ;;
+    *) echo "Unknown parameter: $1"; exit 1 ;;
+  esac
+  shift
+done
+
 NETWORK_NAME="lobbym-network"
 ROOT_DIR="/home/iandr"
 INFRA_DIR="$ROOT_DIR/dev.infra.lobbym.com"
@@ -39,7 +51,7 @@ docker_npm() {
     -v "$(pwd):/app" \
     -w /app \
     -u "$(id -u):$(id -g)" \
-    node:20-alpine \
+    node:22-alpine \
     npm "$@"
 }
 
@@ -52,7 +64,7 @@ docker_pnpm() {
     -u "$(id -u):$(id -g)" \
     -e COREPACK_ENABLE_AUTO_CONFIRM=1 \
     -e COREPACK_HOME=/tmp/corepack \
-    node:20-alpine \
+    node:22-alpine \
     corepack pnpm "$@"
 }
 
@@ -75,9 +87,9 @@ if ! docker network ls | grep -q "$NETWORK_NAME"; then
   docker network create "$NETWORK_NAME"
 fi
 
-# 2. Start Infrastructure (Postgres, Redis)
-echo "📦 Starting Infrastructure (DB, Redis)..."
-cd "$INFRA_DIR" && docker compose up -d
+# 2. Start Infrastructure (Postgres, Redis, Socket, Scraper)
+echo "📦 Starting Infrastructure (DB, Redis, Socket, Scraper)..."
+cd "$INFRA_DIR/local" && docker compose up -d --build
 
 
 # 3. Start Backend Services
@@ -118,22 +130,28 @@ docker exec lobbym-api-php chmod -R 777 storage bootstrap/cache || true
 docker exec lobbym-admin-php chmod -R 777 storage bootstrap/cache || true
 
 # 4. Run Migrations and Seeding
-echo "🛠️  Running Admin Migrations & Seeding..."
-docker exec lobbym-admin-php php artisan migrate:fresh --seed
-
-echo "✅ Ecosystem is pulsing, databases are fresh, and users are created."
-echo "-------------------------------------------------------------------"
-
-echo "📋 Current Users Summary:"
-echo "--- API Users ---"
-docker exec lobbym-api-php php artisan tinker --execute="foreach(App\User::all(['name', 'mail']) as \$u) { echo \$u->name . ' (' . \$u->mail . ')' . PHP_EOL; }"
-echo "--- Admin Users ---"
-docker exec lobbym-admin-php php artisan tinker --execute="foreach(DB::table('panel_users')->get() as \$u) { echo \$u->name . ' (' . \$u->user_name . ')' . PHP_EOL; }"
+if [ "$MIGRATE" = true ]; then
+  echo "🛠️  Running Admin Migrations & Seeding..."
+  docker exec lobbym-admin-php php artisan migrate:fresh --seed
+  
+  echo "✅ Ecosystem is pulsing, databases are fresh, and users are created."
+  echo "-------------------------------------------------------------------"
+  
+  echo "📋 Current Users Summary:"
+  echo "--- API Users ---"
+  docker exec lobbym-api-php php artisan tinker --execute="foreach(App\User::all(['name', 'mail']) as \$u) { echo \$u->name . ' (' . \$u->mail . ')' . PHP_EOL; }"
+  echo "--- Admin Users ---"
+  docker exec lobbym-admin-php php artisan tinker --execute="foreach(DB::table('panel_users')->get() as \$u) { echo \$u->name . ' (' . \$u->user_name . ')' . PHP_EOL; }"
+else
+  echo "⏩ Skipping database migrations and seeding."
+  echo "✅ Ecosystem is pulsing."
+fi
 
 echo "-------------------------------------------------------------------"
 echo "API Admin: magaza@example.com / 12345"
 echo "Panel Admin: admin / 12345"
 echo "Admin Panel: http://localhost:8081"
 echo "Frontend: http://localhost:3000"
+echo "Socket Server: http://localhost:3002"
 echo "Scraper Service: http://localhost:8085"
 echo "-------------------------------------------------------------------"

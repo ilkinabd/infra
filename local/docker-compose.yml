@@ -1,0 +1,60 @@
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: lobbym-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: lobbym
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - lobbym_pg_data:/var/lib/postgresql/data
+      - ../tmp:/tmp
+    networks:
+      - lobbym-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: lobbym-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - lobbym-network
+
+  lobbym-socket:
+    build:
+      context: ../../dev.api.lobbym.com/socket
+      dockerfile: Dockerfile
+    container_name: lobbym-socket
+    ports:
+      - "3002:3000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@lobbym-postgres:5432/lobbym
+      - JWT_SECRET=hCn5nyx49PHVeSbN1Aajzh5XUHNOj6xZ5CCupG3Pgl4xzNlv3sirodDRF6N2EnCY
+      - PORT=3000
+    networks:
+      - lobbym-network
+
+  lobbym-scraper:
+    build:
+      context: ../../dev.api.lobbym.com/scraper
+      dockerfile: Dockerfile
+    container_name: lobbym-scraper
+    shm_size: '2gb'
+    ports:
+      - "8085:8085"
+    networks:
+      - lobbym-network
+    environment:
+      - SCRAPER_PROXY=gkxoynov-tr-rotate:zb2lsvs6o9uv@p.webshare.io:80
+      - PYTHONUNBUFFERED=1
+
+volumes:
+  lobbym_pg_data:
+
+networks:
+  lobbym-network:
+    external: true
