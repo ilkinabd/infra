@@ -1,4 +1,6 @@
-const { createServer } = require("http");
+const fs = require("fs");
+const { createServer: createHttpServer } = require("http");
+const { createServer: createHttpsServer } = require("https");
 const { Server } = require("socket.io");
 const { Pool } = require("pg");
 const express = require("express");
@@ -13,7 +15,22 @@ app.use((req, res, next) => {
   next();
 });
 
-const httpServer = createServer(app);
+let httpServer;
+const keyPath = process.env.SSL_KEY_PATH || "/certs/key.pem";
+const certPath = process.env.SSL_CERT_PATH || "/certs/cert.pem";
+
+if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
+  console.log(`[${new Date().toISOString()}] SSL certificates found at ${keyPath}, starting in HTTPS mode`);
+  const options = {
+    key: fs.readFileSync(keyPath),
+    cert: fs.readFileSync(certPath)
+  };
+  httpServer = createHttpsServer(options, app);
+} else {
+  console.log(`[${new Date().toISOString()}] SSL certificates not found, starting in HTTP mode`);
+  httpServer = createHttpServer(app);
+}
+
 const io = new Server(httpServer, {
   cors: {
     origin: "*"

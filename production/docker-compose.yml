@@ -142,8 +142,12 @@ services:
       - DATABASE_URL=postgresql://postgres:EiB6eish@db:5432/lobbym
       - JWT_SECRET=CYtHI1pjd47GsOU5eKkklRmNdnePdyx89J40VEmGqjCkJlYC1fEazWyd5HSbOmoW
       - PORT=3000
+      - SSL_KEY_PATH=/certs/letsencrypt/live/mail.lobbym.com/privkey.pem
+      - SSL_CERT_PATH=/certs/letsencrypt/live/mail.lobbym.com/fullchain.pem
     depends_on:
       - db
+    volumes:
+      - ./mailu/certs:/certs:ro
     networks:
       - lobbym-network
 
