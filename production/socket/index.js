@@ -114,6 +114,54 @@ app.post("/broadcast-notification", (req, res) => {
   }
 });
 
+// POST endpoint for Laravel API to directly push friend/follow requests
+app.post("/broadcast-friend-request", (req, res) => {
+  try {
+    const friendRequest = req.body;
+    console.log(`[${new Date().toISOString()}] Received friend request broadcast from API:`, JSON.stringify(friendRequest));
+    
+    const recipientId = friendRequest.to_user_id;
+    if (recipientId && userSockets.has(recipientId)) {
+      const sockets = userSockets.get(recipientId);
+      console.log(`[${new Date().toISOString()}] Relaying friend request to ${sockets.size} socket(s) for user ID ${recipientId}`);
+      for (const socketId of sockets) {
+        io.to(socketId).emit("friend_request", friendRequest);
+      }
+      return res.json({ success: true, delivered: true, socketCount: sockets.size });
+    } else {
+      console.log(`[${new Date().toISOString()}] Recipient ID ${recipientId} is offline (not connected)`);
+      return res.json({ success: true, delivered: false, reason: "User not connected" });
+    }
+  } catch (err) {
+    console.error(`[${new Date().toISOString()}] Error broadcasting friend request:`, err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// POST endpoint for Laravel API to directly push conversation updates/new messages
+app.post("/broadcast-conversation", (req, res) => {
+  try {
+    const conversation = req.body;
+    console.log(`[${new Date().toISOString()}] Received conversation broadcast from API:`, JSON.stringify(conversation));
+    
+    const recipientId = conversation.to_user_id;
+    if (recipientId && userSockets.has(recipientId)) {
+      const sockets = userSockets.get(recipientId);
+      console.log(`[${new Date().toISOString()}] Relaying conversation update to ${sockets.size} socket(s) for user ID ${recipientId}`);
+      for (const socketId of sockets) {
+        io.to(socketId).emit("conversation", conversation);
+      }
+      return res.json({ success: true, delivered: true, socketCount: sockets.size });
+    } else {
+      console.log(`[${new Date().toISOString()}] Recipient ID ${recipientId} is offline (not connected)`);
+      return res.json({ success: true, delivered: false, reason: "User not connected" });
+    }
+  } catch (err) {
+    console.error(`[${new Date().toISOString()}] Error broadcasting conversation:`, err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 httpServer.listen(PORT, () => {
   console.log(`Socket server listening on port ${PORT}`);
