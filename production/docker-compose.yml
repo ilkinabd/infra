@@ -139,7 +139,7 @@ services:
     ports:
       - "3002:3000"
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/lobbym
+      - DATABASE_URL=postgresql://postgres:EiB6eish@db:5432/lobbym
       - JWT_SECRET=hCn5nyx49PHVeSbN1Aajzh5XUHNOj6xZ5CCupG3Pgl4xzNlv3sirodDRF6N2EnCY
       - PORT=3000
     depends_on:
