@@ -1,6 +1,6 @@
 services:
   # --- INFRASTRUCTURE ---
-    db:
+  db:
     image: postgres:17-alpine
     container_name: lobbym-postgres
     restart: always
