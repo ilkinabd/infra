@@ -12,6 +12,7 @@ function show_help() {
     echo "  mail-admin-add [user] [domain] [pass] - Create a new global admin"
     echo "  mail-domain-add [domain]              - Add a new mail domain"
     echo "  mail-domain-del [domain]              - Delete a mail domain"
+    echo "  mail-restart                          - Restart Mailu server containers"
     echo ""
     echo "Database Commands:"
     echo "  db-create [dbname]                    - Create a new Postgres database"
@@ -47,6 +48,9 @@ case "$1" in
         ;;
     mail-domain-del)
         docker compose exec admin flask mailu domain-delete "$2"
+        ;;
+    mail-restart)
+        docker compose restart front resolver admin imap smtp antispam webmail
         ;;
     
     # --- DATABASE ---
