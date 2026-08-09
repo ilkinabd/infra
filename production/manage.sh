@@ -27,6 +27,12 @@ function show_help() {
     echo "  status                                - Show container status"
     echo "  scraper-restart                       - Restart the scraper container"
     echo "  scraper-rebuild                       - Rebuild and restart the scraper container"
+    echo ""
+    echo "Highload Service Commands:"
+    echo "  cassandra-cqlsh                       - Access Cassandra CQL shell"
+    echo "  cassandra-restart                     - Restart Cassandra container"
+    echo "  rabbitmq-restart                      - Restart RabbitMQ container"
+    echo "  elastic-restart                       - Restart Elasticsearch container"
 }
 
 case "$1" in
@@ -87,6 +93,22 @@ case "$1" in
 
     scraper-rebuild)
         docker compose up -d --build lobbym-scraper
+        ;;
+
+    cassandra-cqlsh)
+        docker exec -it lobbym-cassandra cqlsh
+        ;;
+
+    cassandra-restart)
+        docker compose restart cassandra
+        ;;
+
+    rabbitmq-restart)
+        docker compose restart rabbitmq
+        ;;
+
+    elastic-restart)
+        docker compose restart elasticsearch kibana
         ;;
 
     *)

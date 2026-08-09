@@ -52,8 +52,61 @@ services:
       - SCRAPER_PROXY=gkxoynov-tr-rotate:zb2lsvs6o9uv@p.webshare.io:80
       - PYTHONUNBUFFERED=1
 
+  elasticsearch:
+    image: elasticsearch:8.11.1
+    container_name: lobbym-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - lobbym_es_data:/usr/share/elasticsearch/data
+    networks:
+      - lobbym-network
+
+  kibana:
+    image: kibana:8.11.1
+    container_name: lobbym-kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://lobbym-elasticsearch:9200
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+    networks:
+      - lobbym-network
+
+  cassandra:
+    image: cassandra:5.0
+    container_name: lobbym-cassandra
+    ports:
+      - "9042:9042"
+    volumes:
+      - lobbym_cassandra_data:/var/lib/cassandra
+    networks:
+      - lobbym-network
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: lobbym-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    volumes:
+      - lobbym_rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - lobbym-network
+
 volumes:
   lobbym_pg_data:
+  lobbym_es_data:
+  lobbym_cassandra_data:
+  lobbym_rabbitmq_data:
 
 networks:
   lobbym-network:

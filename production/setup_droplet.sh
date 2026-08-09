@@ -18,7 +18,11 @@ if ! [ -x "$(command -v docker)" ]; then
     sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
 fi
 
-# 3. Setup Directories
+# 3. Setup Directories & System Parameters
+echo "🔧 Configuring system limits for Elasticsearch..."
+sudo sysctl -w vm.max_map_count=262144 || true
+echo "vm.max_map_count=262144" | sudo tee -a /etc/sysctl.conf > /dev/null || true
+
 mkdir -p mailu/data mailu/config mailu/dkim mailu/mail mailu/overrides mailu/filter mailu/webmail mailu/certs
 mkdir -p scraper
 echo "📂 Directories ready."
@@ -85,4 +89,8 @@ echo "Webmail:  https://[YOUR_IP]/webmail"
 echo "Database: [YOUR_IP]:5433"
 echo "Scraper:  [YOUR_IP]:8085 (internal)"
 echo "Socket:   [YOUR_IP]:3000"
+echo "Elasticsearch: [YOUR_IP]:9200"
+echo "Kibana:   [YOUR_IP]:5601"
+echo "RabbitMQ: [YOUR_IP]:15672 (Management) / 5672"
+echo "Cassandra: [YOUR_IP]:9042"
 echo "--------------------------------------------------"
