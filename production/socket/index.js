@@ -4,6 +4,7 @@ const { createServer: createHttpsServer } = require("https");
 const { Server } = require("socket.io");
 const { Pool } = require("pg");
 const express = require("express");
+const amqp = require("amqplib");
 require("dotenv").config();
 
 const app = express();
@@ -107,79 +108,49 @@ io.on("connection", (socket) => {
   });
 });
 
-// POST endpoint for Laravel API to directly push notifications
-app.post("/broadcast-notification", (req, res) => {
-  try {
-    const notification = req.body;
-    console.log(`[${new Date().toISOString()}] Received notification request from API:`, JSON.stringify(notification));
-    
-    const recipientId = notification.to_user_id;
-    if (recipientId && userSockets.has(recipientId)) {
-      const sockets = userSockets.get(recipientId);
-      console.log(`[${new Date().toISOString()}] Relaying notification to ${sockets.size} socket(s) for user ID ${recipientId}`);
-      for (const socketId of sockets) {
-        io.to(socketId).emit("notification", notification);
-      }
-      return res.json({ success: true, delivered: true, socketCount: sockets.size });
-    } else {
-      console.log(`[${new Date().toISOString()}] Recipient ID ${recipientId} is offline (not connected)`);
-      return res.json({ success: true, delivered: false, reason: "User not connected" });
-    }
-  } catch (err) {
-    console.error(`[${new Date().toISOString()}] Error broadcasting notification:`, err.message);
-    return res.status(500).json({ error: err.message });
-  }
-});
 
-// POST endpoint for Laravel API to directly push friend/follow requests
-app.post("/broadcast-friend-request", (req, res) => {
-  try {
-    const friendRequest = req.body;
-    console.log(`[${new Date().toISOString()}] Received friend request broadcast from API:`, JSON.stringify(friendRequest));
-    
-    const recipientId = friendRequest.to_user_id;
-    if (recipientId && userSockets.has(recipientId)) {
-      const sockets = userSockets.get(recipientId);
-      console.log(`[${new Date().toISOString()}] Relaying friend request to ${sockets.size} socket(s) for user ID ${recipientId}`);
-      for (const socketId of sockets) {
-        io.to(socketId).emit("friend_request", friendRequest);
-      }
-      return res.json({ success: true, delivered: true, socketCount: sockets.size });
-    } else {
-      console.log(`[${new Date().toISOString()}] Recipient ID ${recipientId} is offline (not connected)`);
-      return res.json({ success: true, delivered: false, reason: "User not connected" });
-    }
-  } catch (err) {
-    console.error(`[${new Date().toISOString()}] Error broadcasting friend request:`, err.message);
-    return res.status(500).json({ error: err.message });
-  }
-});
-
-// POST endpoint for Laravel API to directly push conversation updates/new messages
-app.post("/broadcast-conversation", (req, res) => {
-  try {
-    const conversation = req.body;
-    console.log(`[${new Date().toISOString()}] Received conversation broadcast from API:`, JSON.stringify(conversation));
-    
-    const recipientId = conversation.to_user_id;
-    if (recipientId && userSockets.has(recipientId)) {
-      const sockets = userSockets.get(recipientId);
-      console.log(`[${new Date().toISOString()}] Relaying conversation update to ${sockets.size} socket(s) for user ID ${recipientId}`);
-      for (const socketId of sockets) {
-        io.to(socketId).emit("conversation", conversation);
-      }
-      return res.json({ success: true, delivered: true, socketCount: sockets.size });
-    } else {
-      console.log(`[${new Date().toISOString()}] Recipient ID ${recipientId} is offline (not connected)`);
-      return res.json({ success: true, delivered: false, reason: "User not connected" });
-    }
-  } catch (err) {
-    console.error(`[${new Date().toISOString()}] Error broadcasting conversation:`, err.message);
-    return res.status(500).json({ error: err.message });
-  }
-});
 
 const PORT = process.env.PORT || 3000;
 httpServer.listen(PORT, () => {
   console.log(`Socket server listening on port ${PORT}`);
 });
+
+async function startRabbitConsumer() {
+  try {
+    const conn = await amqp.connect(process.env.RABBITMQ_URL || "amqp://guest:guest@lobbym-rabbitmq:5672");
+    const channel = await conn.createChannel();
+    await channel.assertQueue("socket_events", { durable: true });
+    
+    console.log(`[${new Date().toISOString()}] [RabbitMQ] Connected and waiting for socket events...`);
+    
+    channel.consume("socket_events", (msg) => {
+      if (msg !== null) {
+        try {
+          const data = JSON.parse(msg.content.toString());
+          console.log(`[${new Date().toISOString()}] [RabbitMQ] Received event:`, JSON.stringify(data));
+          
+          const { to_user_id, event_type, payload } = data;
+          
+          if (to_user_id && userSockets.has(to_user_id)) {
+            const sockets = userSockets.get(to_user_id);
+            console.log(`[${new Date().toISOString()}] [RabbitMQ] Relaying event '${event_type}' to ${sockets.size} socket(s) for user ID ${to_user_id}`);
+            for (const socketId of sockets) {
+              io.to(socketId).emit(event_type, payload);
+            }
+          } else {
+            console.log(`[${new Date().toISOString()}] [RabbitMQ] Recipient ID ${to_user_id} is offline`);
+          }
+          channel.ack(msg);
+        } catch (parseErr) {
+          console.error(`[${new Date().toISOString()}] [RabbitMQ] Failed to process message:`, parseErr.message);
+          channel.ack(msg);
+        }
+      }
+    });
+  } catch (err) {
+    console.error(`[${new Date().toISOString()}] [RabbitMQ] Consumer connection error:`, err.message);
+    setTimeout(startRabbitConsumer, 5000);
+  }
+}
+
+startRabbitConsumer();
