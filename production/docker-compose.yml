@@ -1,151 +1,57 @@
+version: '3.8'
+
 services:
-  # --- INFRASTRUCTURE ---
+  # --- MAIN REVERSE PROXY ---
+  nginx:
+    image: nginx:alpine
+    container_name: lobbym-nginx-proxy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./mailu/certs:/certs:ro
+      - /var/www/dev.api.lobbym.com:/var/www/dev.api.lobbym.com:ro
+      - /var/www/dev.admin.lobbym.com:/var/www/dev.admin.lobbym.com:ro
+      - /var/www/dev.report.lobbym.com:/var/www/dev.report.lobbym.com:ro
+    networks:
+      lobbym-network:
+        aliases:
+          - lobbym.com
+          - api.lobbym.com
+          - admin.lobbym.com
+          - report.lobbym.com
+          - socket.lobbym.com
+    depends_on:
+      - lobbym-front
+      - lobbym-api-php
+      - lobbym-admin-php
+      - lobbym-report-php
+
+  # --- DATABASES & QUEUES ---
   db:
     image: postgres:17-alpine
     container_name: lobbym-postgres
     restart: always
     environment:
-      POSTGRES_DB: lobbym
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      - POSTGRES_DB=lobbym
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
     ports:
       - "5433:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
     networks:
       - lobbym-network
-  lobbym-scraper:
-    build:
-      context: ./scraper
-      dockerfile: Dockerfile
-    container_name: lobbym-scraper
-    ports:
-      - "8085:8085"
-    networks:
-      - lobbym-network
-    environment:
-      - SCRAPER_PROXY=gkxoynov-tr-rotate:zb2lsvs6o9uv@p.webshare.io:80
-      - PYTHONUNBUFFERED=1
-
-
 
   redis:
     image: redis:7-alpine
     container_name: lobbym-redis
     restart: always
-    networks:
-      - lobbym-network
-
-  # --- MAIL SERVER (MAILU) ---
-  front:
-    image: ghcr.io/mailu/nginx:2.0
-    restart: always
-    env_file: mailu.env
-    dns:
-      - 172.22.0.254
     ports:
-      - "80:80"
-      - "443:443"
-      - "25:25"
-      - "465:465"
-      - "587:587"
-      - "143:143"
-      - "993:993"
-      - "110:110"
-      - "995:995"
-    volumes:
-      - ./mailu/config:/config
-      - ./mailu/data:/data
-      - ./mailu/certs:/certs
-    networks:
-      - lobbym-network
-
-  resolver:
-    image: ghcr.io/mailu/unbound:2.0
-    restart: always
-    env_file: mailu.env
-    networks:
-      lobbym-network:
-        ipv4_address: 172.22.0.254
-
-  admin:
-    image: ghcr.io/mailu/admin:2.0
-    restart: always
-    env_file: mailu.env
-    dns:
-      - 172.22.0.254
-    volumes:
-      - ./mailu/data:/data
-      - ./mailu/dkim:/dkim
-    networks:
-      - lobbym-network
-
-  imap:
-    image: ghcr.io/mailu/dovecot:2.0
-    restart: always
-    env_file: mailu.env
-    dns:
-      - 172.22.0.254
-    volumes:
-      - ./mailu/data:/data
-      - ./mailu/mail:/mail
-      - ./mailu/overrides:/overrides
-      - ./mailu/certs:/certs
-    networks:
-      - lobbym-network
-
-  smtp:
-    image: ghcr.io/mailu/postfix:2.0
-    restart: always
-    env_file: mailu.env
-    dns:
-      - 172.22.0.254
-    volumes:
-      - ./mailu/data:/data
-      - ./mailu/overrides:/overrides
-      - ./mailu/certs:/certs
-    networks:
-      - lobbym-network
-
-  antispam:
-    image: ghcr.io/mailu/rspamd:2.0
-    restart: always
-    env_file: mailu.env
-    dns:
-      - 172.22.0.254
-    volumes:
-      - ./mailu/filter:/var/lib/rspamd
-    networks:
-      - lobbym-network
-
-  webmail:
-    image: ghcr.io/mailu/webmail:2.0
-    restart: always
-    env_file: mailu.env
-    dns:
-      - 172.22.0.254
-    volumes:
-      - ./mailu/webmail:/data
-    networks:
-      - lobbym-network
-  lobbym-socket:
-    build:
-      context: ./socket
-      dockerfile: Dockerfile
-    container_name: lobbym-socket
-    restart: always
-    ports:
-      - "3002:3000"
-    environment:
-      - DATABASE_URL=postgresql://postgres:EiB6eish@db:5432/lobbym
-      - JWT_SECRET=CYtHI1pjd47GsOU5eKkklRmNdnePdyx89J40VEmGqjCkJlYC1fEazWyd5HSbOmoW
-      - PORT=3000
-      - SSL_KEY_PATH=/certs/letsencrypt/live/mailu/privkey.pem
-      - SSL_CERT_PATH=/certs/letsencrypt/live/mailu/fullchain.pem
-    depends_on:
-      - db
-    volumes:
-      - ./mailu/certs:/certs:ro
+      - "6379:6379"
     networks:
       - lobbym-network
 
@@ -156,7 +62,7 @@ services:
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
-      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
     ports:
       - "9200:9200"
     volumes:
@@ -180,6 +86,7 @@ services:
   cassandra:
     image: cassandra:5.0
     container_name: lobbym-cassandra
+    mem_limit: 1536m
     restart: always
     ports:
       - "9042:9042"
@@ -203,6 +110,105 @@ services:
       - RABBITMQ_DEFAULT_PASS=guest
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - lobbym-network
+
+  # --- MICROSERVICES ---
+  lobbym-scraper:
+    build:
+      context: ./scraper
+      dockerfile: Dockerfile
+    container_name: lobbym-scraper
+    restart: always
+    ports:
+      - "8085:8085"
+    networks:
+      - lobbym-network
+    environment:
+      - SCRAPER_PROXY=gkxoynov-tr-rotate:zb2lsvs6o9uv@p.webshare.io:80
+      - PYTHONUNBUFFERED=1
+
+  lobbym-socket:
+    build:
+      context: ./socket
+      dockerfile: Dockerfile
+    container_name: lobbym-socket
+    restart: always
+    ports:
+      - "3002:3000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@lobbym-postgres:5432/lobbym
+      - JWT_SECRET=CYtHI1pjd47GsOU5eKkklRmNdnePdyx89J40VEmGqjCkJlYC1fEazWyd5HSbOmoW
+      - PORT=3000
+    depends_on:
+      - db
+    networks:
+      - lobbym-network
+
+  # --- APPLICATIONS ---
+  lobbym-front:
+    build:
+      context: /var/www/dev.lobbym.com
+      dockerfile: deployments/Dockerfile
+    container_name: lobbym-front
+    restart: always
+    working_dir: /app
+    volumes:
+      - /var/www/dev.lobbym.com:/app
+    env_file:
+      - front.env
+    environment:
+      - HOSTNAME=0.0.0.0
+      - PORT=3000
+    networks:
+      - lobbym-network
+    command: start
+
+  lobbym-api-php:
+    build:
+      context: /var/www/dev.api.lobbym.com
+      dockerfile: deployments/Dockerfile
+    container_name: lobbym-api-php
+    restart: always
+    working_dir: /var/www/dev.api.lobbym.com
+    volumes:
+      - /var/www/dev.api.lobbym.com:/var/www/dev.api.lobbym.com
+    env_file:
+      - api.env
+    environment:
+      - HOME=/tmp
+    networks:
+      - lobbym-network
+
+  lobbym-admin-php:
+    build:
+      context: /var/www/dev.admin.lobbym.com
+      dockerfile: deployments/Dockerfile
+    container_name: lobbym-admin-php
+    restart: always
+    working_dir: /var/www/dev.admin.lobbym.com
+    volumes:
+      - /var/www/dev.admin.lobbym.com:/var/www/dev.admin.lobbym.com
+    env_file:
+      - admin.env
+    environment:
+      - HOME=/tmp
+    networks:
+      - lobbym-network
+
+  lobbym-report-php:
+    build:
+      context: /var/www/dev.report.lobbym.com
+      dockerfile: deployments/Dockerfile
+    container_name: lobbym-report-php
+    restart: always
+    working_dir: /var/www/dev.report.lobbym.com
+    volumes:
+      - /var/www/dev.report.lobbym.com:/var/www/dev.report.lobbym.com
+    env_file:
+      - report.env
+    environment:
+      - HOME=/tmp
     networks:
       - lobbym-network
 
