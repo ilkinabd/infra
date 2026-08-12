@@ -1,0 +1,20 @@
+# Host Environment configurations
+.env
+production/enviroment/
+production/front.env
+
+# Mail server configurations
+mailu/mailu.env
+mailu/data/
+mailu/config/
+mailu/dkim/
+mailu/mail/
+mailu/overrides/
+mailu/filter/
+mailu/webmail/
+mailu/certs/
+
+# Local cache/temps
+local/.env
+tmp/
+*.log

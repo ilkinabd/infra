@@ -18,9 +18,9 @@ services:
       - "110:110"
       - "995:995"
     volumes:
-      - ./mailu/config:/config
-      - ./mailu/data:/data
-      - ./mailu/certs:/certs
+      - ./config:/config
+      - ./data:/data
+      - ./certs:/certs
     networks:
       - lobbym-network
 
@@ -39,8 +39,8 @@ services:
     dns:
       - 172.22.0.254
     volumes:
-      - ./mailu/data:/data
-      - ./mailu/dkim:/dkim
+      - ./data:/data
+      - ./dkim:/dkim
     networks:
       - lobbym-network
 
@@ -51,10 +51,10 @@ services:
     dns:
       - 172.22.0.254
     volumes:
-      - ./mailu/data:/data
-      - ./mailu/mail:/mail
-      - ./mailu/overrides:/overrides
-      - ./mailu/certs:/certs
+      - ./data:/data
+      - ./mail:/mail
+      - ./overrides:/overrides
+      - ./certs:/certs
     networks:
       - lobbym-network
 
@@ -65,9 +65,9 @@ services:
     dns:
       - 172.22.0.254
     volumes:
-      - ./mailu/data:/data
-      - ./mailu/overrides:/overrides
-      - ./mailu/certs:/certs
+      - ./data:/data
+      - ./overrides:/overrides
+      - ./certs:/certs
     networks:
       - lobbym-network
 
@@ -78,7 +78,7 @@ services:
     dns:
       - 172.22.0.254
     volumes:
-      - ./mailu/filter:/var/lib/rspamd
+      - ./filter:/var/lib/rspamd
     networks:
       - lobbym-network
 
@@ -89,7 +89,7 @@ services:
     dns:
       - 172.22.0.254
     volumes:
-      - ./mailu/webmail:/data
+      - ./webmail:/data
     networks:
       - lobbym-network
 

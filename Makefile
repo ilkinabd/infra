@@ -4,6 +4,12 @@ ADMIN_DIR = $(ROOT_DIR)/dev.admin.lobbym.com
 FRONT_DIR = $(ROOT_DIR)/dev.front.lobbym.com
 REPORT_DIR = $(ROOT_DIR)/dev.report.lobbym.com
 
+# Load root environment configuration if it exists
+ifneq (,$(wildcard .env))
+    include .env
+    export
+endif
+
 DOCKER_UID_GID = -u "$$(id -u):$$(id -g)"
 MODE ?= prod
 
@@ -39,15 +45,21 @@ help:
 	@echo "  make hosts-remove     - Remove dev domains from Windows hosts file"
 	@echo ""
 	@echo "Production (Droplet) Commands:"
-	@echo "  make prod-install-deps- Install system ca-certs, openssl, and docker-ce on VPS"
-	@echo "  make prod-app-start   - Start main Lobbym application stack on droplet"
-	@echo "  make prod-app-stop    - Stop main Lobbym application stack on droplet"
-	@echo "  make prod-app-restart - Restart main Lobbym application stack on droplet"
-	@echo "  make prod-mail-start  - Start Mailu mail server stack on droplet"
-	@echo "  make prod-mail-stop   - Stop Mailu mail server stack on droplet"
-	@echo "  make prod-mail-restart- Restart Mailu mail server stack on droplet"
-	@echo "  make prod-status      - Show status of all active production containers"
-	@echo "  make prod-logs        - Tail output logs from production containers"
+	@echo "  make prod-install-deps    - Install system ca-certs, openssl, and docker-ce on VPS"
+	@echo "  make prod-repos-pull      - Clone or pull latest updates from Bitbucket repositories"
+	@echo "  make prod-env-init        - Initialize root .env file from .env.example"
+	@echo "  make prod-env-generate    - Parse environment variables and generate service configurations"
+	@echo "  make prod-app-start       - Start main Lobbym application stack on droplet"
+	@echo "  make prod-app-stop        - Stop main Lobbym application stack on droplet"
+	@echo "  make prod-app-restart     - Restart main Lobbym application stack on droplet"
+	@echo "  make prod-front-build     - Rebuild Next.js frontend and restart frontend container"
+	@echo "  make prod-db-migrate      - Run production Laravel database migrations safely"
+	@echo "  make prod-db-seed         - Run production Laravel database seeders"
+	@echo "  make prod-mail-start      - Start Mailu mail server stack on droplet"
+	@echo "  make prod-mail-stop       - Stop Mailu mail server stack on droplet"
+	@echo "  make prod-mail-restart    - Restart Mailu mail server stack on droplet"
+	@echo "  make prod-status          - Show status of all active production containers"
+	@echo "  make prod-logs            - Tail output logs from production containers"
 	@echo ""
 	@echo "Production Mailu Commands (use: USER=username DOMAIN=example.com PASS=password):"
 	@echo "  make prod-mail-user-add   - Create a new mail account"
@@ -133,7 +145,7 @@ hosts-remove:
 prod-install-deps:
 	@echo "📦 Updating packages and installing dependencies..."
 	sudo apt-get update
-	sudo apt-get install -y ca-certificates curl gnupg lsb-release openssl
+	sudo apt-get install -y ca-certificates curl gnupg lsb-release openssl git
 	@if ! command -v docker >/dev/null 2>&1; then \
 		echo "📦 Installing Docker..."; \
 		sudo mkdir -p /etc/apt/keyrings; \
@@ -143,7 +155,48 @@ prod-install-deps:
 		sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin; \
 	fi
 
-prod-app-start: prod-install-deps
+prod-repos-pull:
+	@echo "📂 Creating /var/www directory if it doesn't exist..."
+	sudo mkdir -p /var/www
+	sudo chmod -R 777 /var/www || true
+	@echo "🐙 Cloning or pulling latest updates from Bitbucket..."
+	@if [ ! -d "/var/www/dev.lobbym.com" ]; then \
+		git clone git@bitbucket.org:myavuz85/dev.lobbym.com.git /var/www/dev.lobbym.com; \
+	else \
+		echo "Pulling latest updates for dev.lobbym.com..."; \
+		git -C /var/www/dev.lobbym.com pull; \
+	fi
+	@if [ ! -d "/var/www/dev.api.lobbym.com" ]; then \
+		git clone git@bitbucket.org:myavuz85/dev.api.lobbym.com.git /var/www/dev.api.lobbym.com; \
+	else \
+		echo "Pulling latest updates for dev.api.lobbym.com..."; \
+		git -C /var/www/dev.api.lobbym.com pull; \
+	fi
+	@if [ ! -d "/var/www/dev.admin.lobbym.com" ]; then \
+		git clone git@bitbucket.org:myavuz85/dev.admin.lobbym.com.git /var/www/dev.admin.lobbym.com; \
+	else \
+		echo "Pulling latest updates for dev.admin.lobbym.com..."; \
+		git -C /var/www/dev.admin.lobbym.com pull; \
+	fi
+	@if [ ! -d "/var/www/dev.report.lobbym.com" ]; then \
+		git clone git@bitbucket.org:myavuz85/dev.report.lobbym.com.git /var/www/dev.report.lobbym.com; \
+	else \
+		echo "Pulling latest updates for dev.report.lobbym.com..."; \
+		git -C /var/www/dev.report.lobbym.com pull; \
+	fi
+
+prod-env-init:
+	@if [ ! -f ".env" ]; then \
+		echo "📋 Initializing .env from .env.example..."; \
+		cp .env.example .env; \
+	else \
+		echo "✓ .env file already exists."; \
+	fi
+
+prod-env-generate: prod-env-init
+	@python3 production/generate_envs.py
+
+prod-app-start: prod-install-deps prod-repos-pull prod-env-generate
 	@echo "🔧 Configuring system limits for Elasticsearch..."
 	sudo sysctl -w vm.max_map_count=262144 || true
 	@if ! grep -q "vm.max_map_count=262144" /etc/sysctl.conf 2>/dev/null; then \
@@ -152,10 +205,6 @@ prod-app-start: prod-install-deps
 	mkdir -p production/scraper
 	@echo "🌐 Creating lobbym-network..."
 	sudo docker network create lobbym-network || true
-
-	@echo "⚙️ Generating production environment files..."
-	chmod +x production/generate_envs.sh
-	./production/generate_envs.sh
 
 	@echo "🐘 Installing Composer dependencies for production API, Admin, and Report..."
 	docker run --rm -v "/var/www/dev.api.lobbym.com:/app" -w /app composer:2.6 composer install --ignore-platform-reqs
@@ -189,8 +238,7 @@ prod-app-restart: prod-app-stop prod-app-start
 
 prod-front-build:
 	@echo "⚙️ Regenerating environment files..."
-	chmod +x production/generate_envs.sh
-	./production/generate_envs.sh
+	$(MAKE) prod-env-generate
 	@echo "📦 Rebuilding Frontend Next.js app..."
 	docker run --rm -v "/var/www/dev.lobbym.com:/app" -w /app node:22-alpine sh -c "corepack enable && corepack prepare pnpm@latest --activate && pnpm install --no-frozen-lockfile --ignore-scripts && pnpm run build"
 	@echo "🔄 Restarting frontend container..."
@@ -198,14 +246,14 @@ prod-front-build:
 
 prod-mail-start: prod-install-deps
 	@echo "📂 Creating Mailu directories..."
-	mkdir -p production/mailu/data production/mailu/config production/mailu/dkim production/mailu/mail production/mailu/overrides production/mailu/filter production/mailu/webmail production/mailu/certs
+	mkdir -p mailu/data mailu/config mailu/dkim mailu/mail mailu/overrides mailu/filter mailu/webmail mailu/certs
 	@echo "🔐 Configuring TLS and generating certs if local..."
 	@if [ "$(MODE)" = "local" ]; then \
 		TLS_FLAVOR="cert"; \
 		HOSTNAMES="mail.lobbym.com,lobbym.com,localhost,127.0.0.1"; \
-		if [ ! -f "production/mailu/certs/cert.pem" ]; then \
+		if [ ! -f "mailu/certs/cert.pem" ]; then \
 			openssl req -x509 -newkey rsa:4096 \
-			  -keyout production/mailu/certs/key.pem -out production/mailu/certs/cert.pem \
+			  -keyout mailu/certs/key.pem -out mailu/certs/cert.pem \
 			  -sha256 -days 3650 -nodes \
 			  -subj "/CN=lobbym.com" \
 			  -addext "subjectAltName = DNS:lobbym.com, DNS:mail.lobbym.com, DNS:localhost, IP:127.0.0.1"; \
@@ -214,41 +262,41 @@ prod-mail-start: prod-install-deps
 		TLS_FLAVOR="letsencrypt"; \
 		HOSTNAMES="mail.lobbym.com"; \
 	fi; \
-	if [ ! -f "production/mailu.env" ]; then \
+	if [ ! -f "mailu/mailu.env" ]; then \
 		echo "⚙️ Generating mailu.env configuration..."; \
-		echo "DEBUG=false" > production/mailu.env; \
-		echo "BYPASS_DNS_CHECK=true" >> production/mailu.env; \
-		echo "DNS_RESOLVER=172.22.0.254" >> production/mailu.env; \
-		echo "DOMAIN=lobbym.com" >> production/mailu.env; \
-		echo "HOSTNAMES=$$HOSTNAMES" >> production/mailu.env; \
-		echo "POSTMASTER=admin" >> production/mailu.env; \
-		echo "SECRET_KEY=$$(openssl rand -base64 32)" >> production/mailu.env; \
-		echo "MESSAGE_SIZE_LIMIT=50000000" >> production/mailu.env; \
-		echo "SESSION_TIMEOUT=3600" >> production/mailu.env; \
-		echo "AUTH_DRIVER=internal" >> production/mailu.env; \
-		echo "TLS_FLAVOR=$$TLS_FLAVOR" >> production/mailu.env; \
-		echo "DB_FLAVOR=sqlite" >> production/mailu.env; \
-		echo "WEBMAIL=snappymail" >> production/mailu.env; \
-		echo "ADMIN=true" >> production/mailu.env; \
-		echo "WEBROOT=/" >> production/mailu.env; \
-		echo "WEB_ADMIN=/admin" >> production/mailu.env; \
-		echo "WEB_WEBMAIL=/webmail" >> production/mailu.env; \
-		echo "WEB_STATIC=/static" >> production/mailu.env; \
-		echo "SITENAME=Lobbym Mail" >> production/mailu.env; \
-		echo "WEBSITE=https://lobbym.com" >> production/mailu.env; \
-		echo "ANTISPAM=rspamd" >> production/mailu.env; \
-		echo "ANTIVIRUS=none" >> production/mailu.env; \
-		echo "SCAN_MACROS=true" >> production/mailu.env; \
-		echo "SERVICES=imap,smtp,pop3,antispam,webmail,admin,front" >> production/mailu.env; \
-		echo "SUBNET=172.22.0.0/16" >> production/mailu.env; \
+		echo "DEBUG=false" > mailu/mailu.env; \
+		echo "BYPASS_DNS_CHECK=true" >> mailu/mailu.env; \
+		echo "DNS_RESOLVER=172.22.0.254" >> mailu/mailu.env; \
+		echo "DOMAIN=lobbym.com" >> mailu/mailu.env; \
+		echo "HOSTNAMES=$$HOSTNAMES" >> mailu/mailu.env; \
+		echo "POSTMASTER=admin" >> mailu/mailu.env; \
+		echo "SECRET_KEY=$$(openssl rand -base64 32)" >> mailu/mailu.env; \
+		echo "MESSAGE_SIZE_LIMIT=50000000" >> mailu/mailu.env; \
+		echo "SESSION_TIMEOUT=3600" >> mailu/mailu.env; \
+		echo "AUTH_DRIVER=internal" >> mailu/mailu.env; \
+		echo "TLS_FLAVOR=$$TLS_FLAVOR" >> mailu/mailu.env; \
+		echo "DB_FLAVOR=sqlite" >> mailu/mailu.env; \
+		echo "WEBMAIL=snappymail" >> mailu/mailu.env; \
+		echo "ADMIN=true" >> mailu/mailu.env; \
+		echo "WEBROOT=/" >> mailu/mailu.env; \
+		echo "WEB_ADMIN=/admin" >> mailu/mailu.env; \
+		echo "WEB_WEBMAIL=/webmail" >> mailu/mailu.env; \
+		echo "WEB_STATIC=/static" >> mailu/mailu.env; \
+		echo "SITENAME=Lobbym Mail" >> mailu/mailu.env; \
+		echo "WEBSITE=https://lobbym.com" >> mailu/mailu.env; \
+		echo "ANTISPAM=rspamd" >> mailu/mailu.env; \
+		echo "ANTIVIRUS=none" >> mailu/mailu.env; \
+		echo "SCAN_MACROS=true" >> mailu/mailu.env; \
+		echo "SERVICES=imap,smtp,pop3,antispam,webmail,admin,front" >> mailu/mailu.env; \
+		echo "SUBNET=172.22.0.0/16" >> mailu/mailu.env; \
 	fi
 	@echo "🌐 Creating lobbym-network..."
 	sudo docker network create lobbym-network || true
 	@echo "🐳 Starting Mailu stack..."
-	cd production && sudo docker compose -f mailu.yml --env-file mailu.env up -d
+	cd mailu && sudo docker compose --env-file mailu.env up -d
 
 prod-mail-stop:
-	cd production && sudo docker compose -f mailu.yml down
+	cd mailu && sudo docker compose down
 
 prod-mail-restart: prod-mail-stop prod-mail-start
 
@@ -257,31 +305,31 @@ prod-status:
 	cd production && sudo docker compose ps
 	@echo ""
 	@echo "--- Lobbym Mail (Mailu) Containers ---"
-	cd production && sudo docker compose -f mailu.yml ps
+	cd mailu && sudo docker compose ps
 
 prod-logs:
 	cd production && sudo docker compose logs -f --tail=100
 
 prod-mail-user-add:
-	cd production && sudo docker compose -f mailu.yml exec admin flask mailu user "$(USER)" "$(DOMAIN)" "$(PASS)"
+	cd mailu && sudo docker compose exec admin flask mailu user "$(USER)" "$(DOMAIN)" "$(PASS)"
 
 prod-mail-user-del:
-	cd production && sudo docker compose -f mailu.yml exec admin flask mailu user-delete "$(USER)@$(DOMAIN)" --really
+	cd mailu && sudo docker compose exec admin flask mailu user-delete "$(USER)@$(DOMAIN)" --really
 
 prod-mail-user-pass:
-	cd production && sudo docker compose -f mailu.yml exec admin flask mailu password "$(USER)" "$(DOMAIN)" "$(PASS)"
+	cd mailu && sudo docker compose exec admin flask mailu password "$(USER)" "$(DOMAIN)" "$(PASS)"
 
 prod-mail-admin-add:
-	cd production && sudo docker compose -f mailu.yml exec admin flask mailu admin "$(USER)" "$(DOMAIN)" "$(PASS)"
+	cd mailu && sudo docker compose exec admin flask mailu admin "$(USER)" "$(DOMAIN)" "$(PASS)"
 
 prod-mail-domain-add:
-	cd production && sudo docker compose -f mailu.yml exec admin flask mailu domain "$(DOMAIN)"
+	cd mailu && sudo docker compose exec admin flask mailu domain "$(DOMAIN)"
 
 prod-mail-domain-del:
-	cd production && sudo docker compose -f mailu.yml exec admin flask mailu domain-delete "$(DOMAIN)"
+	cd mailu && sudo docker compose exec admin flask mailu domain-delete "$(DOMAIN)"
 
 prod-mail-restart:
-	cd production && sudo docker compose -f mailu.yml restart front resolver admin imap smtp antispam webmail
+	cd mailu && sudo docker compose restart front resolver admin imap smtp antispam webmail
 
 prod-db-create:
 	sudo docker exec -it lobbym-postgres psql -U postgres -c "CREATE DATABASE $(DBNAME);"
