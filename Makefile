@@ -164,8 +164,7 @@ prod-app-start: prod-install-deps
 	fi
 	docker run --rm -v "/var/www/dev.admin.lobbym.com:/app" -w /app node:22-alpine npm run build || true
 
-	@echo "📦 Installing Node dependencies and building Frontend Next.js app..."
-	docker run --rm -v "/var/www/dev.lobbym.com:/app" -w /app node:22-alpine sh -c "corepack enable && corepack prepare pnpm@latest --activate && pnpm install --no-frozen-lockfile && pnpm run build"
+	docker run --rm -v "/var/www/dev.lobbym.com:/app" -w /app node:22-alpine sh -c "corepack enable && corepack prepare pnpm@latest --activate && pnpm install --no-frozen-lockfile --ignore-scripts && pnpm run build"
 
 	@echo "🚀 Starting Lobbym production application stack..."
 	cd production && sudo docker compose up -d --build
