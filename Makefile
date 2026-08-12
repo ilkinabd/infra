@@ -164,10 +164,20 @@ prod-app-start: prod-install-deps
 	fi
 	docker run --rm -v "/var/www/dev.admin.lobbym.com:/app" -w /app node:22-alpine npm run build || true
 
+	@echo "📦 Installing Node dependencies and building Frontend Next.js app..."
 	docker run --rm -v "/var/www/dev.lobbym.com:/app" -w /app node:22-alpine sh -c "corepack enable && corepack prepare pnpm@latest --activate && pnpm install --no-frozen-lockfile --ignore-scripts && pnpm run build"
+
+	@echo "⚙️ Generating production environment files..."
+	chmod +x production/generate_envs.sh
+	./production/generate_envs.sh
 
 	@echo "🚀 Starting Lobbym production application stack..."
 	cd production && sudo docker compose up -d --build
+
+	@echo "🔓 Fixing Laravel storage and cache folder permissions..."
+	sudo docker exec lobbym-api-php chmod -R 777 storage bootstrap/cache || true
+	sudo docker exec lobbym-admin-php chmod -R 777 storage bootstrap/cache || true
+	sudo docker exec lobbym-report-php chmod -R 777 storage bootstrap/cache || true
 
 prod-app-stop:
 	cd production && sudo docker compose down
