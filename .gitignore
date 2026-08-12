@@ -2,6 +2,7 @@
 .env
 production/enviroment/
 production/front.env
+production/nginx/conf.d/default.conf
 
 # Mail server configurations
 mailu/mailu.env
