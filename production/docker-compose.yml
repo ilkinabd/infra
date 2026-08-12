@@ -12,7 +12,7 @@ services:
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
-      - ./mailu/certs:/certs:ro
+      - ./certs:/certs:ro
       - /var/www/dev.api.lobbym.com:/var/www/dev.api.lobbym.com:ro
       - /var/www/dev.admin.lobbym.com:/var/www/dev.admin.lobbym.com:ro
       - /var/www/dev.report.lobbym.com:/var/www/dev.report.lobbym.com:ro
