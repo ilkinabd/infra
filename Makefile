@@ -184,6 +184,15 @@ prod-app-stop:
 
 prod-app-restart: prod-app-stop prod-app-start
 
+prod-front-build:
+	@echo "⚙️ Regenerating environment files..."
+	chmod +x production/generate_envs.sh
+	./production/generate_envs.sh
+	@echo "📦 Rebuilding Frontend Next.js app..."
+	docker run --rm -v "/var/www/dev.lobbym.com:/app" -w /app node:22-alpine sh -c "corepack enable && corepack prepare pnpm@latest --activate && pnpm install --no-frozen-lockfile --ignore-scripts && pnpm run build"
+	@echo "🔄 Restarting frontend container..."
+	cd production && sudo docker compose restart lobbym-front
+
 prod-mail-start: prod-install-deps
 	@echo "📂 Creating Mailu directories..."
 	mkdir -p production/mailu/data production/mailu/config production/mailu/dkim production/mailu/mail production/mailu/overrides production/mailu/filter production/mailu/webmail production/mailu/certs
