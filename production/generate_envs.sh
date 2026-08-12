@@ -85,7 +85,3 @@ NEXT_PUBLIC_BASE_URL=https://lobbym.com
 NEXT_PUBLIC_SOCKET_URL=https://socket.lobbym.com
 EOF
 
-# Maintain legacy root copy path if other services reference it
-cp production/enviroment/front.env production/front.env
-
-
