@@ -179,6 +179,9 @@ prod-app-start: prod-install-deps
 	sudo docker exec lobbym-admin-php chmod -R 777 storage bootstrap/cache || true
 	sudo docker exec lobbym-report-php chmod -R 777 storage bootstrap/cache || true
 
+	@echo "🔑 Generating JWT Secret Key for the API..."
+	sudo docker exec lobbym-api-php php artisan jwt:secret --force || true
+
 prod-app-stop:
 	cd production && sudo docker compose down
 

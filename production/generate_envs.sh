@@ -32,6 +32,13 @@ if [ -f "production/enviroment/api.env" ]; then
     sed -i 's|APP_API_URL=.*|APP_API_URL=https://api.lobbym.com|g' production/enviroment/api.env || true
     sed -i 's|APP_PUBLIC_URL=.*|APP_PUBLIC_URL=https://api.lobbym.com|g' production/enviroment/api.env || true
     sed -i 's|APP_SOCKET_URL=.*|APP_SOCKET_URL=https://socket.lobbym.com|g' production/enviroment/api.env || true
+    # Database
+    sed -i 's|DB_CONNECTION=.*|DB_CONNECTION=pgsql|g' production/enviroment/api.env || true
+    sed -i 's|DB_HOST=.*|DB_HOST=lobbym-postgres|g' production/enviroment/api.env || true
+    sed -i 's|DB_PORT=.*|DB_PORT=5432|g' production/enviroment/api.env || true
+    sed -i 's|DB_DATABASE=.*|DB_DATABASE=lobbym|g' production/enviroment/api.env || true
+    sed -i 's|DB_USERNAME=.*|DB_USERNAME=postgres|g' production/enviroment/api.env || true
+    sed -i 's|DB_PASSWORD=.*|DB_PASSWORD=postgres|g' production/enviroment/api.env || true
 fi
 
 # 2. Admin
@@ -43,6 +50,13 @@ if [ -f "production/enviroment/admin.env" ]; then
     sed -i 's|APP_API_URL=.*|APP_API_URL=https://api.lobbym.com|g' production/enviroment/admin.env || true
     sed -i 's|APP_PUBLIC_URL=.*|APP_PUBLIC_URL=https://admin.lobbym.com|g' production/enviroment/admin.env || true
     sed -i 's|APP_SOCKET_URL=.*|APP_SOCKET_URL=https://socket.lobbym.com|g' production/enviroment/admin.env || true
+    # Database
+    sed -i 's|DB_CONNECTION=.*|DB_CONNECTION=pgsql|g' production/enviroment/admin.env || true
+    sed -i 's|DB_HOST=.*|DB_HOST=lobbym-postgres|g' production/enviroment/admin.env || true
+    sed -i 's|DB_PORT=.*|DB_PORT=5432|g' production/enviroment/admin.env || true
+    sed -i 's|DB_DATABASE=.*|DB_DATABASE=lobbym|g' production/enviroment/admin.env || true
+    sed -i 's|DB_USERNAME=.*|DB_USERNAME=postgres|g' production/enviroment/admin.env || true
+    sed -i 's|DB_PASSWORD=.*|DB_PASSWORD=postgres|g' production/enviroment/admin.env || true
 fi
 
 # 3. Report
@@ -54,6 +68,13 @@ if [ -f "production/enviroment/report.env" ]; then
     sed -i 's|APP_API_URL=.*|APP_API_URL=https://api.lobbym.com|g' production/enviroment/report.env || true
     sed -i 's|APP_PUBLIC_URL=.*|APP_PUBLIC_URL=https://report.lobbym.com|g' production/enviroment/report.env || true
     sed -i 's|APP_SOCKET_URL=.*|APP_SOCKET_URL=https://socket.lobbym.com|g' production/enviroment/report.env || true
+    # Database
+    sed -i 's|DB_CONNECTION=.*|DB_CONNECTION=pgsql|g' production/enviroment/report.env || true
+    sed -i 's|DB_HOST=.*|DB_HOST=lobbym-postgres|g' production/enviroment/report.env || true
+    sed -i 's|DB_PORT=.*|DB_PORT=5432|g' production/enviroment/report.env || true
+    sed -i 's|DB_DATABASE=.*|DB_DATABASE=lobbym|g' production/enviroment/report.env || true
+    sed -i 's|DB_USERNAME=.*|DB_USERNAME=postgres|g' production/enviroment/report.env || true
+    sed -i 's|DB_PASSWORD=.*|DB_PASSWORD=postgres|g' production/enviroment/report.env || true
 fi
 
 # 4. Frontend
