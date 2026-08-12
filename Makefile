@@ -298,6 +298,14 @@ prod-db-user-del:
 prod-db-list:
 	sudo docker exec -it lobbym-postgres psql -U postgres -c "\l"
 
+prod-db-migrate:
+	@echo "🛠️ Running production database migrations..."
+	sudo docker exec lobbym-admin-php php artisan migrate --force
+
+prod-db-seed:
+	@echo "🌱 Running production database seeding..."
+	sudo docker exec lobbym-admin-php php artisan db:seed --force
+
 prod-scraper-restart:
 	cd production && sudo docker compose restart lobbym-scraper
 
