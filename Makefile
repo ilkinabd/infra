@@ -207,6 +207,7 @@ prod-env-clean:
 	@echo "🧹 Cleaning generated environment and Nginx config files..."
 	rm -f production/enviroment/*.env
 	rm -f production/nginx/conf.d/default.conf
+	rm -f production/docker-compose.yml
 
 prod-app-start: prod-install-deps prod-repos-pull prod-env-generate
 	@echo "🔧 Configuring system limits for Elasticsearch..."

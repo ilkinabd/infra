@@ -13,17 +13,17 @@ services:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
       - ./certs:/certs:ro
-      - /var/www/dev.api.lobbym.com:/var/www/dev.api.lobbym.com:ro
-      - /var/www/dev.admin.lobbym.com:/var/www/dev.admin.lobbym.com:ro
-      - /var/www/dev.report.lobbym.com:/var/www/dev.report.lobbym.com:ro
+      - /var/www/__API_DOMAIN__:/var/www/__API_DOMAIN__:ro
+      - /var/www/__ADMIN_DOMAIN__:/var/www/__ADMIN_DOMAIN__:ro
+      - /var/www/__REPORT_DOMAIN__:/var/www/__REPORT_DOMAIN__:ro
     networks:
       lobbym-network:
         aliases:
-          - lobbym.com
-          - api.lobbym.com
-          - admin.lobbym.com
-          - report.lobbym.com
-          - socket.lobbym.com
+          - __FRONT_DOMAIN__
+          - __API_DOMAIN__
+          - __ADMIN_DOMAIN__
+          - __REPORT_DOMAIN__
+          - __SOCKET_DOMAIN__
     depends_on:
       - lobbym-front
       - lobbym-api-php
@@ -148,13 +148,13 @@ services:
   # --- APPLICATIONS ---
   lobbym-front:
     build:
-      context: /var/www/${FRONT_DOMAIN}
+      context: /var/www/__FRONT_DOMAIN__
       dockerfile: deployments/Dockerfile
     container_name: lobbym-front
     restart: always
     working_dir: /app
     volumes:
-      - /var/www/${FRONT_DOMAIN}:/app
+      - /var/www/__FRONT_DOMAIN__:/app
       - ./enviroment/front.env:/app/.env
     environment:
       - HOSTNAME=0.0.0.0
@@ -166,46 +166,40 @@ services:
 
   lobbym-api-php:
     build:
-      context: /var/www/${API_DOMAIN}
+      context: /var/www/__API_DOMAIN__
       dockerfile: deployments/Dockerfile
     container_name: lobbym-api-php
     restart: always
-    working_dir: /var/www/${API_DOMAIN}
+    working_dir: /var/www/__API_DOMAIN__
     volumes:
-      - /var/www/${API_DOMAIN}:/var/www/${API_DOMAIN}
-      - ./enviroment/api.env:/var/www/${API_DOMAIN}/.env
-    environment:
-      - HOME=/tmp
+      - /var/www/__API_DOMAIN__:/var/www/__API_DOMAIN__
+      - ./enviroment/api.env:/var/www/__API_DOMAIN__/.env
     networks:
       - lobbym-network
 
   lobbym-admin-php:
     build:
-      context: /var/www/${ADMIN_DOMAIN}
+      context: /var/www/__ADMIN_DOMAIN__
       dockerfile: deployments/Dockerfile
     container_name: lobbym-admin-php
     restart: always
-    working_dir: /var/www/${ADMIN_DOMAIN}
+    working_dir: /var/www/__ADMIN_DOMAIN__
     volumes:
-      - /var/www/${ADMIN_DOMAIN}:/var/www/${ADMIN_DOMAIN}
-      - ./enviroment/admin.env:/var/www/${ADMIN_DOMAIN}/.env
-    environment:
-      - HOME=/tmp
+      - /var/www/__ADMIN_DOMAIN__:/var/www/__ADMIN_DOMAIN__
+      - ./enviroment/admin.env:/var/www/__ADMIN_DOMAIN__/.env
     networks:
       - lobbym-network
 
   lobbym-report-php:
     build:
-      context: /var/www/${REPORT_DOMAIN}
+      context: /var/www/__REPORT_DOMAIN__
       dockerfile: deployments/Dockerfile
     container_name: lobbym-report-php
     restart: always
-    working_dir: /var/www/${REPORT_DOMAIN}
+    working_dir: /var/www/__REPORT_DOMAIN__
     volumes:
-      - /var/www/${REPORT_DOMAIN}:/var/www/${REPORT_DOMAIN}
-      - ./enviroment/report.env:/var/www/${REPORT_DOMAIN}/.env
-    environment:
-      - HOME=/tmp
+      - /var/www/__REPORT_DOMAIN__:/var/www/__REPORT_DOMAIN__
+      - ./enviroment/report.env:/var/www/__REPORT_DOMAIN__/.env
     networks:
       - lobbym-network
 

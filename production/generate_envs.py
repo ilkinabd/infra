@@ -56,31 +56,30 @@ def main():
     template_path = 'production/nginx/conf.d/default.conf.template'
     output_path = 'production/nginx/conf.d/default.conf'
     
-    if os.path.exists(template_path):
-        # Service configuration mappings
-        services = {
-            'FRONT': {
-                'domain': env.get('FRONT_DOMAIN', 'lobbym.com'),
-                'protocol': env.get('FRONT_PROTOCOL', 'https')
-            },
-            'API': {
-                'domain': env.get('API_DOMAIN', 'api.lobbym.com'),
-                'protocol': env.get('API_PROTOCOL', 'https')
-            },
-            'ADMIN': {
-                'domain': env.get('ADMIN_DOMAIN', 'admin.lobbym.com'),
-                'protocol': env.get('ADMIN_PROTOCOL', 'https')
-            },
-            'REPORT': {
-                'domain': env.get('REPORT_DOMAIN', 'report.lobbym.com'),
-                'protocol': env.get('REPORT_PROTOCOL', 'https')
-            },
-            'SOCKET': {
-                'domain': env.get('SOCKET_DOMAIN', 'socket.lobbym.com'),
-                'protocol': env.get('SOCKET_PROTOCOL', 'https')
-            }
+    services = {
+        'FRONT': {
+            'domain': env.get('FRONT_DOMAIN', 'lobbym.com'),
+            'protocol': env.get('FRONT_PROTOCOL', 'https')
+        },
+        'API': {
+            'domain': env.get('API_DOMAIN', 'api.lobbym.com'),
+            'protocol': env.get('API_PROTOCOL', 'https')
+        },
+        'ADMIN': {
+            'domain': env.get('ADMIN_DOMAIN', 'admin.lobbym.com'),
+            'protocol': env.get('ADMIN_PROTOCOL', 'https')
+        },
+        'REPORT': {
+            'domain': env.get('REPORT_DOMAIN', 'report.lobbym.com'),
+            'protocol': env.get('REPORT_PROTOCOL', 'https')
+        },
+        'SOCKET': {
+            'domain': env.get('SOCKET_DOMAIN', 'socket.lobbym.com'),
+            'protocol': env.get('SOCKET_PROTOCOL', 'https')
         }
-        
+    }
+    
+    if os.path.exists(template_path):
         # Build redirect block for HTTPS domains
         redirect_domains = []
         for name, cfg in services.items():
@@ -136,6 +135,25 @@ def main():
             f.write(template)
             
         print('✓ Compiled Nginx reverse proxy configuration.')
+
+    # Compile Docker Compose template
+    compose_template = 'production/docker-compose.yml.template'
+    compose_output = 'production/docker-compose.yml'
+    
+    if os.path.exists(compose_template):
+        with open(compose_template, 'r') as f:
+            template = f.read()
+            
+        template = template.replace('__FRONT_DOMAIN__', services['FRONT']['domain'])
+        template = template.replace('__API_DOMAIN__', services['API']['domain'])
+        template = template.replace('__ADMIN_DOMAIN__', services['ADMIN']['domain'])
+        template = template.replace('__REPORT_DOMAIN__', services['REPORT']['domain'])
+        template = template.replace('__SOCKET_DOMAIN__', services['SOCKET']['domain'])
+        
+        with open(compose_output, 'w') as f:
+            f.write(template)
+            
+        print('✓ Compiled production docker-compose configuration.')
 
 if __name__ == '__main__':
     main()
