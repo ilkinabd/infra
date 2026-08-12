@@ -52,6 +52,7 @@ help:
 	@echo "  make prod-app-start       - Start main Lobbym application stack on droplet"
 	@echo "  make prod-app-stop        - Stop main Lobbym application stack on droplet"
 	@echo "  make prod-app-restart     - Restart main Lobbym application stack on droplet"
+	@echo "  make prod-nginx-restart   - Restart Nginx proxy container on droplet"
 	@echo "  make prod-front-build     - Rebuild Next.js frontend and restart frontend container"
 	@echo "  make prod-db-migrate      - Run production Laravel database migrations safely"
 	@echo "  make prod-db-seed         - Run production Laravel database seeders"
@@ -253,6 +254,9 @@ prod-app-stop:
 	cd production && sudo docker compose down
 
 prod-app-restart: prod-app-stop prod-app-start
+
+prod-nginx-restart:
+	cd production && sudo docker compose restart nginx
 
 prod-front-build:
 	@echo "⚙️ Regenerating environment files..."
