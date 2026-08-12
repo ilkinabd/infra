@@ -10,6 +10,12 @@ ifneq (,$(wildcard .env))
     export
 endif
 
+# Fallback values for dynamic codebase directories on the host
+FRONT_DOMAIN ?= lobbym.com
+API_DOMAIN ?= api.lobbym.com
+ADMIN_DOMAIN ?= admin.lobbym.com
+REPORT_DOMAIN ?= report.lobbym.com
+
 DOCKER_UID_GID = -u "$$(id -u):$$(id -g)"
 MODE ?= prod
 
@@ -49,6 +55,7 @@ help:
 	@echo "  make prod-repos-pull      - Clone or pull latest updates from Bitbucket repositories"
 	@echo "  make prod-env-init        - Initialize root .env file from .env.example"
 	@echo "  make prod-env-generate    - Parse environment variables and generate service configurations"
+	@echo "  make prod-env-clean       - Delete all generated environment and config files"
 	@echo "  make prod-app-start       - Start main Lobbym application stack on droplet"
 	@echo "  make prod-app-stop        - Stop main Lobbym application stack on droplet"
 	@echo "  make prod-app-restart     - Restart main Lobbym application stack on droplet"
@@ -160,29 +167,29 @@ prod-repos-pull:
 	sudo mkdir -p /var/www
 	sudo chmod -R 777 /var/www || true
 	@echo "🐙 Cloning or pulling latest updates from Bitbucket..."
-	@if [ ! -d "/var/www/dev.lobbym.com" ]; then \
-		git clone git@bitbucket.org:myavuz85/dev.lobbym.com.git /var/www/dev.lobbym.com; \
+	@if [ ! -d "/var/www/$(FRONT_DOMAIN)" ]; then \
+		git clone git@bitbucket.org:myavuz85/dev.lobbym.com.git /var/www/$(FRONT_DOMAIN); \
 	else \
-		echo "Pulling latest updates for dev.lobbym.com..."; \
-		git -C /var/www/dev.lobbym.com pull; \
+		echo "Pulling latest updates for $(FRONT_DOMAIN)..."; \
+		git -C /var/www/$(FRONT_DOMAIN) pull; \
 	fi
-	@if [ ! -d "/var/www/dev.api.lobbym.com" ]; then \
-		git clone git@bitbucket.org:myavuz85/dev.api.lobbym.com.git /var/www/dev.api.lobbym.com; \
+	@if [ ! -d "/var/www/$(API_DOMAIN)" ]; then \
+		git clone git@bitbucket.org:myavuz85/dev.api.lobbym.com.git /var/www/$(API_DOMAIN); \
 	else \
-		echo "Pulling latest updates for dev.api.lobbym.com..."; \
-		git -C /var/www/dev.api.lobbym.com pull; \
+		echo "Pulling latest updates for $(API_DOMAIN)..."; \
+		git -C /var/www/$(API_DOMAIN) pull; \
 	fi
-	@if [ ! -d "/var/www/dev.admin.lobbym.com" ]; then \
-		git clone git@bitbucket.org:myavuz85/dev.admin.lobbym.com.git /var/www/dev.admin.lobbym.com; \
+	@if [ ! -d "/var/www/$(ADMIN_DOMAIN)" ]; then \
+		git clone git@bitbucket.org:myavuz85/dev.admin.lobbym.com.git /var/www/$(ADMIN_DOMAIN); \
 	else \
-		echo "Pulling latest updates for dev.admin.lobbym.com..."; \
-		git -C /var/www/dev.admin.lobbym.com pull; \
+		echo "Pulling latest updates for $(ADMIN_DOMAIN)..."; \
+		git -C /var/www/$(ADMIN_DOMAIN) pull; \
 	fi
-	@if [ ! -d "/var/www/dev.report.lobbym.com" ]; then \
-		git clone git@bitbucket.org:myavuz85/dev.report.lobbym.com.git /var/www/dev.report.lobbym.com; \
+	@if [ ! -d "/var/www/$(REPORT_DOMAIN)" ]; then \
+		git clone git@bitbucket.org:myavuz85/dev.report.lobbym.com.git /var/www/$(REPORT_DOMAIN); \
 	else \
-		echo "Pulling latest updates for dev.report.lobbym.com..."; \
-		git -C /var/www/dev.report.lobbym.com pull; \
+		echo "Pulling latest updates for $(REPORT_DOMAIN)..."; \
+		git -C /var/www/$(REPORT_DOMAIN) pull; \
 	fi
 
 prod-env-init:
@@ -196,6 +203,11 @@ prod-env-init:
 prod-env-generate: prod-env-init
 	@python3 production/generate_envs.py
 
+prod-env-clean:
+	@echo "🧹 Cleaning generated environment and Nginx config files..."
+	rm -f production/enviroment/*.env
+	rm -f production/nginx/conf.d/default.conf
+
 prod-app-start: prod-install-deps prod-repos-pull prod-env-generate
 	@echo "🔧 Configuring system limits for Elasticsearch..."
 	sudo sysctl -w vm.max_map_count=262144 || true
@@ -207,18 +219,18 @@ prod-app-start: prod-install-deps prod-repos-pull prod-env-generate
 	sudo docker network create lobbym-network || true
 
 	@echo "🐘 Installing Composer dependencies for production API, Admin, and Report..."
-	docker run --rm -v "/var/www/dev.api.lobbym.com:/app" -w /app composer:2.6 composer install --ignore-platform-reqs
-	docker run --rm -v "/var/www/dev.admin.lobbym.com:/app" -w /app composer:2.6 composer install --ignore-platform-reqs
-	docker run --rm -v "/var/www/dev.report.lobbym.com:/app" -w /app composer:2.6 composer install --ignore-platform-reqs
+	docker run --rm -v "/var/www/$(API_DOMAIN):/app" -w /app composer:2.6 composer install --ignore-platform-reqs
+	docker run --rm -v "/var/www/$(ADMIN_DOMAIN):/app" -w /app composer:2.6 composer install --ignore-platform-reqs
+	docker run --rm -v "/var/www/$(REPORT_DOMAIN):/app" -w /app composer:2.6 composer install --ignore-platform-reqs
 
 	@echo "📦 Installing Node dependencies and building Admin assets..."
-	if [ ! -d "/var/www/dev.admin.lobbym.com/node_modules" ]; then \
-		docker run --rm -v "/var/www/dev.admin.lobbym.com:/app" -w /app node:22-alpine npm install; \
+	if [ ! -d "/var/www/$(ADMIN_DOMAIN)/node_modules" ]; then \
+		docker run --rm -v "/var/www/$(ADMIN_DOMAIN):/app" -w /app node:22-alpine npm install; \
 	fi
-	docker run --rm -v "/var/www/dev.admin.lobbym.com:/app" -w /app node:22-alpine npm run build || true
+	docker run --rm -v "/var/www/$(ADMIN_DOMAIN):/app" -w /app node:22-alpine npm run build || true
 
 	@echo "📦 Installing Node dependencies and building Frontend Next.js app..."
-	docker run --rm -v "/var/www/dev.lobbym.com:/app" -w /app node:22-alpine sh -c "corepack enable && corepack prepare pnpm@latest --activate && pnpm install --no-frozen-lockfile --ignore-scripts && pnpm run build"
+	docker run --rm -v "/var/www/$(FRONT_DOMAIN):/app" -w /app node:22-alpine sh -c "corepack enable && corepack prepare pnpm@latest --activate && pnpm install --no-frozen-lockfile --ignore-scripts && pnpm run build"
 
 	@echo "🚀 Starting Lobbym production application stack..."
 	cd production && sudo docker compose up -d --build
@@ -240,7 +252,7 @@ prod-front-build:
 	@echo "⚙️ Regenerating environment files..."
 	$(MAKE) prod-env-generate
 	@echo "📦 Rebuilding Frontend Next.js app..."
-	docker run --rm -v "/var/www/dev.lobbym.com:/app" -w /app node:22-alpine sh -c "corepack enable && corepack prepare pnpm@latest --activate && pnpm install --no-frozen-lockfile --ignore-scripts && pnpm run build"
+	docker run --rm -v "/var/www/$(FRONT_DOMAIN):/app" -w /app node:22-alpine sh -c "corepack enable && corepack prepare pnpm@latest --activate && pnpm install --no-frozen-lockfile --ignore-scripts && pnpm run build"
 	@echo "🔄 Restarting frontend container..."
 	cd production && sudo docker compose restart lobbym-front
 

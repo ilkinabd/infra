@@ -24,7 +24,7 @@ server {
 
     __API_SSL_CONFIG__
 
-    root /var/www/dev.api.lobbym.com/public;
+    root /var/www/__API_DOMAIN__/public;
     index index.php;
 
     location / {
@@ -46,7 +46,7 @@ server {
 
     __ADMIN_SSL_CONFIG__
 
-    root /var/www/dev.admin.lobbym.com/public;
+    root /var/www/__ADMIN_DOMAIN__/public;
     index index.php;
 
     location / {
@@ -68,7 +68,7 @@ server {
 
     __REPORT_SSL_CONFIG__
 
-    root /var/www/dev.report.lobbym.com/public;
+    root /var/www/__REPORT_DOMAIN__/public;
     index index.php;
 
     location / {

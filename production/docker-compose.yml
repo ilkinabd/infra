@@ -148,13 +148,13 @@ services:
   # --- APPLICATIONS ---
   lobbym-front:
     build:
-      context: /var/www/dev.lobbym.com
+      context: /var/www/${FRONT_DOMAIN}
       dockerfile: deployments/Dockerfile
     container_name: lobbym-front
     restart: always
     working_dir: /app
     volumes:
-      - /var/www/dev.lobbym.com:/app
+      - /var/www/${FRONT_DOMAIN}:/app
       - ./enviroment/front.env:/app/.env
     environment:
       - HOSTNAME=0.0.0.0
@@ -166,14 +166,14 @@ services:
 
   lobbym-api-php:
     build:
-      context: /var/www/dev.api.lobbym.com
+      context: /var/www/${API_DOMAIN}
       dockerfile: deployments/Dockerfile
     container_name: lobbym-api-php
     restart: always
-    working_dir: /var/www/dev.api.lobbym.com
+    working_dir: /var/www/${API_DOMAIN}
     volumes:
-      - /var/www/dev.api.lobbym.com:/var/www/dev.api.lobbym.com
-      - ./enviroment/api.env:/var/www/dev.api.lobbym.com/.env
+      - /var/www/${API_DOMAIN}:/var/www/${API_DOMAIN}
+      - ./enviroment/api.env:/var/www/${API_DOMAIN}/.env
     environment:
       - HOME=/tmp
     networks:
@@ -181,14 +181,14 @@ services:
 
   lobbym-admin-php:
     build:
-      context: /var/www/dev.admin.lobbym.com
+      context: /var/www/${ADMIN_DOMAIN}
       dockerfile: deployments/Dockerfile
     container_name: lobbym-admin-php
     restart: always
-    working_dir: /var/www/dev.admin.lobbym.com
+    working_dir: /var/www/${ADMIN_DOMAIN}
     volumes:
-      - /var/www/dev.admin.lobbym.com:/var/www/dev.admin.lobbym.com
-      - ./enviroment/admin.env:/var/www/dev.admin.lobbym.com/.env
+      - /var/www/${ADMIN_DOMAIN}:/var/www/${ADMIN_DOMAIN}
+      - ./enviroment/admin.env:/var/www/${ADMIN_DOMAIN}/.env
     environment:
       - HOME=/tmp
     networks:
@@ -196,14 +196,14 @@ services:
 
   lobbym-report-php:
     build:
-      context: /var/www/dev.report.lobbym.com
+      context: /var/www/${REPORT_DOMAIN}
       dockerfile: deployments/Dockerfile
     container_name: lobbym-report-php
     restart: always
-    working_dir: /var/www/dev.report.lobbym.com
+    working_dir: /var/www/${REPORT_DOMAIN}
     volumes:
-      - /var/www/dev.report.lobbym.com:/var/www/dev.report.lobbym.com
-      - ./enviroment/report.env:/var/www/dev.report.lobbym.com/.env
+      - /var/www/${REPORT_DOMAIN}:/var/www/${REPORT_DOMAIN}
+      - ./enviroment/report.env:/var/www/${REPORT_DOMAIN}/.env
     environment:
       - HOME=/tmp
     networks:
