@@ -52,6 +52,7 @@ help:
 	@echo "  make prod-app-start       - Start main Lobbym application stack on droplet"
 	@echo "  make prod-app-stop        - Stop main Lobbym application stack on droplet"
 	@echo "  make prod-app-restart     - Restart main Lobbym application stack on droplet"
+	@echo "  make prod-backend-init    - Pull, build, keygen, and restart only the API, Admin, and Report services"
 	@echo "  make prod-nginx-restart   - Restart Nginx proxy container on droplet"
 	@echo "  make prod-front-build     - Rebuild Next.js frontend and restart frontend container"
 	@echo "  make prod-db-migrate      - Run production Laravel database migrations safely"
@@ -280,6 +281,62 @@ prod-app-stop:
 	cd production && sudo docker compose down
 
 prod-app-restart: prod-app-stop prod-app-start
+
+prod-backend-init: prod-env-generate
+	@echo "🐙 Pulling latest backend updates..."
+	@if [ ! -d "/var/www/$(API_DOMAIN)" ]; then \
+		git clone -b $(API_BRANCH) $(API_REPO) /var/www/$(API_DOMAIN); \
+		git -C /var/www/$(API_DOMAIN) config core.filemode false; \
+	else \
+		git -C /var/www/$(API_DOMAIN) config core.filemode false; \
+		git -C /var/www/$(API_DOMAIN) checkout -B $(API_BRANCH) --track origin/$(API_BRANCH) 2>/dev/null || git -C /var/www/$(API_DOMAIN) checkout $(API_BRANCH); \
+		git -C /var/www/$(API_DOMAIN) pull; \
+	fi
+	@if [ ! -d "/var/www/$(ADMIN_DOMAIN)" ]; then \
+		git clone -b $(ADMIN_BRANCH) $(ADMIN_REPO) /var/www/$(ADMIN_DOMAIN); \
+		git -C /var/www/$(ADMIN_DOMAIN) config core.filemode false; \
+	else \
+		git -C /var/www/$(ADMIN_DOMAIN) config core.filemode false; \
+		git -C /var/www/$(ADMIN_DOMAIN) checkout -B $(ADMIN_BRANCH) --track origin/$(ADMIN_BRANCH) 2>/dev/null || git -C /var/www/$(ADMIN_DOMAIN) checkout $(ADMIN_BRANCH); \
+		git -C /var/www/$(ADMIN_DOMAIN) pull; \
+	fi
+	@if [ ! -d "/var/www/$(REPORT_DOMAIN)" ]; then \
+		git clone -b $(REPORT_BRANCH) $(REPORT_REPO) /var/www/$(REPORT_DOMAIN); \
+		git -C /var/www/$(REPORT_DOMAIN) config core.filemode false; \
+	else \
+		git -C /var/www/$(REPORT_DOMAIN) config core.filemode false; \
+		git -C /var/www/$(REPORT_DOMAIN) checkout -B $(REPORT_BRANCH) --track origin/$(REPORT_BRANCH) 2>/dev/null || git -C /var/www/$(REPORT_DOMAIN) checkout $(REPORT_BRANCH); \
+		git -C /var/www/$(REPORT_DOMAIN) pull; \
+	fi
+
+	@echo "🐘 Installing Composer dependencies for API, Admin, and Report..."
+	docker run --rm -v "/var/www/$(API_DOMAIN):/app" -w /app composer:2.6 composer install --ignore-platform-reqs
+	docker run --rm -v "/var/www/$(ADMIN_DOMAIN):/app" -w /app composer:2.6 composer install --ignore-platform-reqs
+	docker run --rm -v "/var/www/$(REPORT_DOMAIN):/app" -w /app composer:2.6 composer install --ignore-platform-reqs
+
+	@echo "📦 Building Admin and Report frontend assets..."
+	if [ ! -d "/var/www/$(ADMIN_DOMAIN)/node_modules" ]; then \
+		docker run --rm -v "/var/www/$(ADMIN_DOMAIN):/app" -w /app node:22-alpine npm install; \
+	fi
+	docker run --rm -v "/var/www/$(ADMIN_DOMAIN):/app" -w /app node:22-alpine npm run build || true
+	if [ ! -d "/var/www/$(REPORT_DOMAIN)/node_modules" ]; then \
+		docker run --rm -v "/var/www/$(REPORT_DOMAIN):/app" -w /app node:22-alpine npm install; \
+	fi
+	docker run --rm -v "/var/www/$(REPORT_DOMAIN):/app" -w /app node:22-alpine npm run build || true
+
+	@echo "🔄 Restarting backend containers..."
+	cd production && sudo docker compose restart lobbym-api-php lobbym-admin-php lobbym-report-php nginx
+
+	@echo "🔓 Fixing folder permissions..."
+	sudo docker exec lobbym-api-php chmod -R 777 storage bootstrap/cache || true
+	sudo docker exec lobbym-admin-php chmod -R 777 storage bootstrap/cache || true
+	sudo docker exec lobbym-report-php chmod -R 777 storage bootstrap/cache || true
+
+	@echo "🔑 Generating Keys..."
+	sudo docker exec lobbym-api-php php artisan key:generate --force || true
+	sudo docker exec lobbym-admin-php php artisan key:generate --force || true
+	sudo docker exec lobbym-report-php php artisan key:generate --force || true
+	sudo docker exec lobbym-api-php php artisan jwt:secret --force || true
 
 prod-nginx-restart:
 	cd production && sudo docker compose restart nginx
