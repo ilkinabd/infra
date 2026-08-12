@@ -59,7 +59,9 @@ fi
 # 4. Frontend
 cat > "production/enviroment/front.env" <<EOF
 LARAVEL_API_URL=https://api.lobbym.com/api
+NEXT_PUBLIC_LARAVEL_URL=https://api.lobbym.com
 NEXT_PUBLIC_BASE_URL=https://lobbym.com
+NEXT_PUBLIC_SOCKET_URL=https://socket.lobbym.com
 EOF
 
 # Maintain legacy root copy path if other services reference it
@@ -69,4 +71,3 @@ cp production/enviroment/front.env production/front.env
 rm -f /var/www/dev.api.lobbym.com/.env
 rm -f /var/www/dev.admin.lobbym.com/.env
 rm -f /var/www/dev.report.lobbym.com/.env
-rm -f /var/www/dev.lobbym.com/.env
