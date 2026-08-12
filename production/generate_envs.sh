@@ -88,7 +88,4 @@ EOF
 # Maintain legacy root copy path if other services reference it
 cp production/enviroment/front.env production/front.env
 
-# Clean up any leftover repository root .env files/symlinks on the host to keep code bases clean
-rm -f /var/www/dev.api.lobbym.com/.env
-rm -f /var/www/dev.admin.lobbym.com/.env
-rm -f /var/www/dev.report.lobbym.com/.env
+
