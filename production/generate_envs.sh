@@ -12,6 +12,8 @@ echo "⚙️ Flexibly generating api.env, admin.env, and report.env from templat
 # 1. API
 if [ -f "/var/www/dev.api.lobbym.com/deployments/.env" ]; then
     cp /var/www/dev.api.lobbym.com/deployments/.env production/api.env
+elif [ -f "/var/www/dev.api.lobbym.com/.env" ]; then
+    cp /var/www/dev.api.lobbym.com/.env production/api.env
 elif [ -f "/var/www/dev.api.lobbym.com/.env.example" ]; then
     cp /var/www/dev.api.lobbym.com/.env.example production/api.env
 fi
@@ -28,6 +30,8 @@ fi
 # 2. Admin
 if [ -f "/var/www/dev.admin.lobbym.com/deployments/.env" ]; then
     cp /var/www/dev.admin.lobbym.com/deployments/.env production/admin.env
+elif [ -f "/var/www/dev.admin.lobbym.com/.env" ]; then
+    cp /var/www/dev.admin.lobbym.com/.env production/admin.env
 elif [ -f "/var/www/dev.admin.lobbym.com/.env.example" ]; then
     cp /var/www/dev.admin.lobbym.com/.env.example production/admin.env
 fi
@@ -44,6 +48,8 @@ fi
 # 3. Report
 if [ -f "/var/www/dev.report.lobbym.com/deployments/.env" ]; then
     cp /var/www/dev.report.lobbym.com/deployments/.env production/report.env
+elif [ -f "/var/www/dev.report.lobbym.com/.env" ]; then
+    cp /var/www/dev.report.lobbym.com/.env production/report.env
 elif [ -f "/var/www/dev.report.lobbym.com/.env.example" ]; then
     cp /var/www/dev.report.lobbym.com/.env.example production/report.env
 fi

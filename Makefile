@@ -153,6 +153,10 @@ prod-app-start: prod-install-deps
 	@echo "🌐 Creating lobbym-network..."
 	sudo docker network create lobbym-network || true
 
+	@echo "⚙️ Generating production environment files..."
+	chmod +x production/generate_envs.sh
+	./production/generate_envs.sh
+
 	@echo "🐘 Installing Composer dependencies for production API, Admin, and Report..."
 	docker run --rm -v "/var/www/dev.api.lobbym.com:/app" -w /app composer:2.6 composer install --ignore-platform-reqs
 	docker run --rm -v "/var/www/dev.admin.lobbym.com:/app" -w /app composer:2.6 composer install --ignore-platform-reqs
@@ -166,10 +170,6 @@ prod-app-start: prod-install-deps
 
 	@echo "📦 Installing Node dependencies and building Frontend Next.js app..."
 	docker run --rm -v "/var/www/dev.lobbym.com:/app" -w /app node:22-alpine sh -c "corepack enable && corepack prepare pnpm@latest --activate && pnpm install --no-frozen-lockfile --ignore-scripts && pnpm run build"
-
-	@echo "⚙️ Generating production environment files..."
-	chmod +x production/generate_envs.sh
-	./production/generate_envs.sh
 
 	@echo "🚀 Starting Lobbym production application stack..."
 	cd production && sudo docker compose up -d --build
