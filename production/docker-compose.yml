@@ -155,9 +155,7 @@ services:
     working_dir: /app
     volumes:
       - /var/www/dev.lobbym.com:/app
-      - ./front.env:/app/.env
-    env_file:
-      - front.env
+      - ./enviroment/front.env:/app/.env
     environment:
       - HOSTNAME=0.0.0.0
       - PORT=3000
@@ -174,9 +172,7 @@ services:
     working_dir: /var/www/dev.api.lobbym.com
     volumes:
       - /var/www/dev.api.lobbym.com:/var/www/dev.api.lobbym.com
-      - ./api.env:/var/www/dev.api.lobbym.com/.env
-    env_file:
-      - api.env
+      - ./enviroment/api.env:/var/www/dev.api.lobbym.com/.env
     environment:
       - HOME=/tmp
     networks:
@@ -191,9 +187,7 @@ services:
     working_dir: /var/www/dev.admin.lobbym.com
     volumes:
       - /var/www/dev.admin.lobbym.com:/var/www/dev.admin.lobbym.com
-      - ./admin.env:/var/www/dev.admin.lobbym.com/.env
-    env_file:
-      - admin.env
+      - ./enviroment/admin.env:/var/www/dev.admin.lobbym.com/.env
     environment:
       - HOME=/tmp
     networks:
@@ -208,9 +202,7 @@ services:
     working_dir: /var/www/dev.report.lobbym.com
     volumes:
       - /var/www/dev.report.lobbym.com:/var/www/dev.report.lobbym.com
-      - ./report.env:/var/www/dev.report.lobbym.com/.env
-    env_file:
-      - report.env
+      - ./enviroment/report.env:/var/www/dev.report.lobbym.com/.env
     environment:
       - HOME=/tmp
     networks:
