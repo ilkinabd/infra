@@ -212,8 +212,18 @@ prod-env-init:
 	@if [ ! -f ".env" ]; then \
 		echo "📋 Initializing .env from .env.example..."; \
 		cp .env.example .env; \
-	else \
-		echo "✓ .env file already exists."; \
+	fi
+	@if grep -q "^API_APP_KEY=\s*$$" .env; then \
+		echo "🔑 Generating API_APP_KEY in .env..."; \
+		sed -i "s|^API_APP_KEY=.*|API_APP_KEY=base64:$$(openssl rand -base64 32)|" .env; \
+	fi
+	@if grep -q "^ADMIN_APP_KEY=\s*$$" .env; then \
+		echo "🔑 Generating ADMIN_APP_KEY in .env..."; \
+		sed -i "s|^ADMIN_APP_KEY=.*|ADMIN_APP_KEY=base64:$$(openssl rand -base64 32)|" .env; \
+	fi
+	@if grep -q "^REPORT_APP_KEY=\s*$$" .env; then \
+		echo "🔑 Generating REPORT_APP_KEY in .env..."; \
+		sed -i "s|^REPORT_APP_KEY=.*|REPORT_APP_KEY=base64:$$(openssl rand -base64 32)|" .env; \
 	fi
 
 prod-env-generate: prod-env-init
@@ -271,6 +281,9 @@ prod-app-start: prod-install-deps prod-repos-pull prod-env-generate
 	sudo docker exec lobbym-report-php chmod -R 777 storage bootstrap/cache || true
 
 	@echo "🔑 Generating Application Encryption Keys..."
+	sudo docker exec lobbym-api-php php artisan config:clear || true
+	sudo docker exec lobbym-admin-php php artisan config:clear || true
+	sudo docker exec lobbym-report-php php artisan config:clear || true
 	sudo docker exec lobbym-api-php php artisan key:generate --force || true
 	sudo docker exec lobbym-admin-php php artisan key:generate --force || true
 	sudo docker exec lobbym-report-php php artisan key:generate --force || true
@@ -334,6 +347,9 @@ prod-backend-init: prod-env-generate
 	sudo docker exec lobbym-report-php chmod -R 777 storage bootstrap/cache || true
 
 	@echo "🔑 Generating Keys..."
+	sudo docker exec lobbym-api-php php artisan config:clear || true
+	sudo docker exec lobbym-admin-php php artisan config:clear || true
+	sudo docker exec lobbym-report-php php artisan config:clear || true
 	sudo docker exec lobbym-api-php php artisan key:generate --force || true
 	sudo docker exec lobbym-admin-php php artisan key:generate --force || true
 	sudo docker exec lobbym-report-php php artisan key:generate --force || true
