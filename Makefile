@@ -332,6 +332,18 @@ prod-status:
 prod-logs:
 	cd production && sudo docker compose logs -f --tail=100
 
+prod-logs-admin:
+	cd production && sudo docker compose logs -f --tail=100 lobbym-admin-php
+
+prod-logs-report:
+	cd production && sudo docker compose logs -f --tail=100 lobbym-report-php
+
+prod-logs-api:
+	cd production && sudo docker compose logs -f --tail=100 lobbym-api-php
+
+prod-logs-front:
+	cd production && sudo docker compose logs -f --tail=100 lobbym-front
+
 prod-nginx-config:
 	@echo "📂 Listing Nginx config directory inside container..."
 	sudo docker exec lobbym-nginx-proxy ls -la /etc/nginx/conf.d
