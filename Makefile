@@ -60,6 +60,7 @@ help:
 	@echo "  make prod-mail-restart    - Restart Mailu mail server stack on droplet"
 	@echo "  make prod-status          - Show status of all active production containers"
 	@echo "  make prod-logs            - Tail output logs from production containers"
+	@echo "  make prod-nginx-config    - List config files and print default.conf inside Nginx container"
 	@echo ""
 	@echo "Production Mailu Commands (use: USER=username DOMAIN=example.com PASS=password):"
 	@echo "  make prod-mail-user-add   - Create a new mail account"
@@ -319,6 +320,13 @@ prod-status:
 
 prod-logs:
 	cd production && sudo docker compose logs -f --tail=100
+
+prod-nginx-config:
+	@echo "📂 Listing Nginx config directory inside container..."
+	sudo docker exec lobbym-nginx-proxy ls -la /etc/nginx/conf.d
+	@echo ""
+	@echo "📄 Compiled default.conf configuration inside container..."
+	sudo docker exec lobbym-nginx-proxy cat /etc/nginx/conf.d/default.conf
 
 prod-mail-user-add:
 	cd mailu && sudo docker compose exec admin flask mailu user "$(USER)" "$(DOMAIN)" "$(PASS)"
