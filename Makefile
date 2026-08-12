@@ -65,6 +65,9 @@ help:
 	@echo "  make prod-logs-report     - Tail logs from the report container"
 	@echo "  make prod-logs-api        - Tail logs from the api container"
 	@echo "  make prod-logs-front      - Tail logs from the frontend container"
+	@echo "  make prod-laravel-logs-api - Tail Laravel log file for API service"
+	@echo "  make prod-laravel-logs-admin - Tail Laravel log file for Admin service"
+	@echo "  make prod-laravel-logs-report - Tail Laravel log file for Report service"
 	@echo "  make prod-nginx-config    - List config files and print default.conf inside Nginx container"
 	@echo ""
 	@echo "Production Mailu Commands (use: USER=username DOMAIN=example.com PASS=password):"
@@ -347,6 +350,15 @@ prod-logs-api:
 
 prod-logs-front:
 	cd production && sudo docker compose logs -f --tail=100 lobbym-front
+
+prod-laravel-logs-api:
+	tail -n 100 -f /var/www/$(API_DOMAIN)/storage/logs/laravel-$$(date +%F).log
+
+prod-laravel-logs-admin:
+	tail -n 100 -f /var/www/$(ADMIN_DOMAIN)/storage/logs/laravel-$$(date +%F).log
+
+prod-laravel-logs-report:
+	tail -n 100 -f /var/www/$(REPORT_DOMAIN)/storage/logs/laravel-$$(date +%F).log
 
 prod-nginx-config:
 	@echo "📂 Listing Nginx config directory inside container..."
