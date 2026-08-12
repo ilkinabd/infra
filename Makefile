@@ -9,13 +9,6 @@ ifneq (,$(wildcard .env))
     include .env
     export
 endif
-
-# Fallback values for dynamic codebase directories on the host
-FRONT_DOMAIN ?= lobbym.com
-API_DOMAIN ?= api.lobbym.com
-ADMIN_DOMAIN ?= admin.lobbym.com
-REPORT_DOMAIN ?= report.lobbym.com
-
 DOCKER_UID_GID = -u "$$(id -u):$$(id -g)"
 MODE ?= prod
 
@@ -168,27 +161,31 @@ prod-repos-pull:
 	sudo chmod -R 777 /var/www || true
 	@echo "🐙 Cloning or pulling latest updates from Bitbucket..."
 	@if [ ! -d "/var/www/$(FRONT_DOMAIN)" ]; then \
-		git clone git@bitbucket.org:myavuz85/dev.lobbym.com.git /var/www/$(FRONT_DOMAIN); \
+		git clone -b $(FRONT_BRANCH) $(FRONT_REPO) /var/www/$(FRONT_DOMAIN); \
 	else \
-		echo "Pulling latest updates for $(FRONT_DOMAIN)..."; \
+		echo "Pulling latest updates for $(FRONT_DOMAIN) ($(FRONT_BRANCH))..."; \
+		git -C /var/www/$(FRONT_DOMAIN) checkout -B $(FRONT_BRANCH) --track origin/$(FRONT_BRANCH) 2>/dev/null || git -C /var/www/$(FRONT_DOMAIN) checkout $(FRONT_BRANCH); \
 		git -C /var/www/$(FRONT_DOMAIN) pull; \
 	fi
 	@if [ ! -d "/var/www/$(API_DOMAIN)" ]; then \
-		git clone git@bitbucket.org:myavuz85/dev.api.lobbym.com.git /var/www/$(API_DOMAIN); \
+		git clone -b $(API_BRANCH) $(API_REPO) /var/www/$(API_DOMAIN); \
 	else \
-		echo "Pulling latest updates for $(API_DOMAIN)..."; \
+		echo "Pulling latest updates for $(API_DOMAIN) ($(API_BRANCH))..."; \
+		git -C /var/www/$(API_DOMAIN) checkout -B $(API_BRANCH) --track origin/$(API_BRANCH) 2>/dev/null || git -C /var/www/$(API_DOMAIN) checkout $(API_BRANCH); \
 		git -C /var/www/$(API_DOMAIN) pull; \
 	fi
 	@if [ ! -d "/var/www/$(ADMIN_DOMAIN)" ]; then \
-		git clone git@bitbucket.org:myavuz85/dev.admin.lobbym.com.git /var/www/$(ADMIN_DOMAIN); \
+		git clone -b $(ADMIN_BRANCH) $(ADMIN_REPO) /var/www/$(ADMIN_DOMAIN); \
 	else \
-		echo "Pulling latest updates for $(ADMIN_DOMAIN)..."; \
+		echo "Pulling latest updates for $(ADMIN_DOMAIN) ($(ADMIN_BRANCH))..."; \
+		git -C /var/www/$(ADMIN_DOMAIN) checkout -B $(ADMIN_BRANCH) --track origin/$(ADMIN_BRANCH) 2>/dev/null || git -C /var/www/$(ADMIN_DOMAIN) checkout $(ADMIN_BRANCH); \
 		git -C /var/www/$(ADMIN_DOMAIN) pull; \
 	fi
 	@if [ ! -d "/var/www/$(REPORT_DOMAIN)" ]; then \
-		git clone git@bitbucket.org:myavuz85/dev.report.lobbym.com.git /var/www/$(REPORT_DOMAIN); \
+		git clone -b $(REPORT_BRANCH) $(REPORT_REPO) /var/www/$(REPORT_DOMAIN); \
 	else \
-		echo "Pulling latest updates for $(REPORT_DOMAIN)..."; \
+		echo "Pulling latest updates for $(REPORT_DOMAIN) ($(REPORT_BRANCH))..."; \
+		git -C /var/www/$(REPORT_DOMAIN) checkout -B $(REPORT_BRANCH) --track origin/$(REPORT_BRANCH) 2>/dev/null || git -C /var/www/$(REPORT_DOMAIN) checkout $(REPORT_BRANCH); \
 		git -C /var/www/$(REPORT_DOMAIN) pull; \
 	fi
 
