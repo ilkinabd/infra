@@ -262,6 +262,11 @@ prod-app-start: prod-install-deps prod-repos-pull prod-env-generate
 	sudo docker exec lobbym-admin-php chmod -R 777 storage bootstrap/cache || true
 	sudo docker exec lobbym-report-php chmod -R 777 storage bootstrap/cache || true
 
+	@echo "🔑 Generating Application Encryption Keys..."
+	sudo docker exec lobbym-api-php php artisan key:generate --force || true
+	sudo docker exec lobbym-admin-php php artisan key:generate --force || true
+	sudo docker exec lobbym-report-php php artisan key:generate --force || true
+
 	@echo "🔑 Generating JWT Secret Key for the API..."
 	sudo docker exec lobbym-api-php php artisan jwt:secret --force || true
 
