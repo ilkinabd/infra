@@ -171,29 +171,37 @@ prod-repos-pull:
 	@echo "🐙 Cloning or pulling latest updates from Bitbucket..."
 	@if [ ! -d "/var/www/$(FRONT_DOMAIN)" ]; then \
 		git clone -b $(FRONT_BRANCH) $(FRONT_REPO) /var/www/$(FRONT_DOMAIN); \
+		git -C /var/www/$(FRONT_DOMAIN) config core.filemode false; \
 	else \
 		echo "Pulling latest updates for $(FRONT_DOMAIN) ($(FRONT_BRANCH))..."; \
+		git -C /var/www/$(FRONT_DOMAIN) config core.filemode false; \
 		git -C /var/www/$(FRONT_DOMAIN) checkout -B $(FRONT_BRANCH) --track origin/$(FRONT_BRANCH) 2>/dev/null || git -C /var/www/$(FRONT_DOMAIN) checkout $(FRONT_BRANCH); \
 		git -C /var/www/$(FRONT_DOMAIN) pull; \
 	fi
 	@if [ ! -d "/var/www/$(API_DOMAIN)" ]; then \
 		git clone -b $(API_BRANCH) $(API_REPO) /var/www/$(API_DOMAIN); \
+		git -C /var/www/$(API_DOMAIN) config core.filemode false; \
 	else \
 		echo "Pulling latest updates for $(API_DOMAIN) ($(API_BRANCH))..."; \
+		git -C /var/www/$(API_DOMAIN) config core.filemode false; \
 		git -C /var/www/$(API_DOMAIN) checkout -B $(API_BRANCH) --track origin/$(API_BRANCH) 2>/dev/null || git -C /var/www/$(API_DOMAIN) checkout $(API_BRANCH); \
 		git -C /var/www/$(API_DOMAIN) pull; \
 	fi
 	@if [ ! -d "/var/www/$(ADMIN_DOMAIN)" ]; then \
 		git clone -b $(ADMIN_BRANCH) $(ADMIN_REPO) /var/www/$(ADMIN_DOMAIN); \
+		git -C /var/www/$(ADMIN_DOMAIN) config core.filemode false; \
 	else \
 		echo "Pulling latest updates for $(ADMIN_DOMAIN) ($(ADMIN_BRANCH))..."; \
+		git -C /var/www/$(ADMIN_DOMAIN) config core.filemode false; \
 		git -C /var/www/$(ADMIN_DOMAIN) checkout -B $(ADMIN_BRANCH) --track origin/$(ADMIN_BRANCH) 2>/dev/null || git -C /var/www/$(ADMIN_DOMAIN) checkout $(ADMIN_BRANCH); \
 		git -C /var/www/$(ADMIN_DOMAIN) pull; \
 	fi
 	@if [ ! -d "/var/www/$(REPORT_DOMAIN)" ]; then \
 		git clone -b $(REPORT_BRANCH) $(REPORT_REPO) /var/www/$(REPORT_DOMAIN); \
+		git -C /var/www/$(REPORT_DOMAIN) config core.filemode false; \
 	else \
 		echo "Pulling latest updates for $(REPORT_DOMAIN) ($(REPORT_BRANCH))..."; \
+		git -C /var/www/$(REPORT_DOMAIN) config core.filemode false; \
 		git -C /var/www/$(REPORT_DOMAIN) checkout -B $(REPORT_BRANCH) --track origin/$(REPORT_BRANCH) 2>/dev/null || git -C /var/www/$(REPORT_DOMAIN) checkout $(REPORT_BRANCH); \
 		git -C /var/www/$(REPORT_DOMAIN) pull; \
 	fi
