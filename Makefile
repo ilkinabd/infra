@@ -352,13 +352,13 @@ prod-logs-front:
 	cd production && sudo docker compose logs -f --tail=100 lobbym-front
 
 prod-laravel-logs-api:
-	tail -n 100 -f /var/www/$(API_DOMAIN)/storage/logs/laravel-$$(date +%F).log
+	tail -n 100 -f /var/www/$(API_DOMAIN)/storage/logs/laravel.log
 
 prod-laravel-logs-admin:
-	tail -n 100 -f /var/www/$(ADMIN_DOMAIN)/storage/logs/laravel-$$(date +%F).log
+	tail -n 100 -f /var/www/$(ADMIN_DOMAIN)/storage/logs/laravel.log
 
 prod-laravel-logs-report:
-	tail -n 100 -f /var/www/$(REPORT_DOMAIN)/storage/logs/laravel-$$(date +%F).log
+	tail -n 100 -f /var/www/$(REPORT_DOMAIN)/storage/logs/laravel.log
 
 prod-nginx-config:
 	@echo "📂 Listing Nginx config directory inside container..."
