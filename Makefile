@@ -231,6 +231,13 @@ prod-app-start: prod-install-deps prod-repos-pull prod-env-generate
 	@echo "📦 Installing Node dependencies and building Frontend Next.js app..."
 	docker run --rm -v "/var/www/$(FRONT_DOMAIN):/app" -w /app node:22-alpine sh -c "corepack enable && corepack prepare pnpm@latest --activate && pnpm install --no-frozen-lockfile --ignore-scripts && pnpm run build"
 
+	@echo "🔐 Checking SSL certificates..."
+	mkdir -p production/certs
+	@if [ ! -f "production/certs/fullchain.pem" ] || [ ! -f "production/certs/privkey.pem" ]; then \
+		echo "⚠️ SSL certificates not found. Generating temporary self-signed dummy certificates..."; \
+		openssl req -x509 -newkey rsa:2048 -keyout production/certs/privkey.pem -out production/certs/fullchain.pem -days 365 -nodes -subj "/CN=lobbym.com"; \
+	fi
+
 	@echo "🚀 Starting Lobbym production application stack..."
 	cd production && sudo docker compose up -d --build
 
