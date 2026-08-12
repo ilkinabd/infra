@@ -152,6 +152,21 @@ prod-app-start: prod-install-deps
 	mkdir -p production/scraper
 	@echo "🌐 Creating lobbym-network..."
 	sudo docker network create lobbym-network || true
+
+	@echo "🐘 Installing Composer dependencies for production API, Admin, and Report..."
+	docker run --rm -v "/var/www/dev.api.lobbym.com:/app" -w /app composer:2.6 composer install --ignore-platform-reqs
+	docker run --rm -v "/var/www/dev.admin.lobbym.com:/app" -w /app composer:2.6 composer install --ignore-platform-reqs
+	docker run --rm -v "/var/www/dev.report.lobbym.com:/app" -w /app composer:2.6 composer install --ignore-platform-reqs
+
+	@echo "📦 Installing Node dependencies and building Admin assets..."
+	if [ ! -d "/var/www/dev.admin.lobbym.com/node_modules" ]; then \
+		docker run --rm -v "/var/www/dev.admin.lobbym.com:/app" -w /app node:22-alpine npm install; \
+	fi
+	docker run --rm -v "/var/www/dev.admin.lobbym.com:/app" -w /app node:22-alpine npm run build || true
+
+	@echo "📦 Installing Node dependencies and building Frontend Next.js app..."
+	docker run --rm -v "/var/www/dev.lobbym.com:/app" -w /app node:22-alpine sh -c "corepack enable && corepack prepare pnpm@latest --activate && pnpm install --no-frozen-lockfile && pnpm run build"
+
 	@echo "🚀 Starting Lobbym production application stack..."
 	cd production && sudo docker compose up -d --build
 
