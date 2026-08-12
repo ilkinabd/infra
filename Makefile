@@ -22,7 +22,12 @@ endef
 
 .PHONY: help local local-clean hosts-add hosts-remove \
         prod-install-deps prod-app-start prod-app-stop prod-app-restart \
-        prod-mail-start prod-mail-stop prod-mail-restart prod-status prod-logs
+        prod-mail-start prod-mail-stop prod-mail-restart prod-status prod-logs \
+        prod-mail-user-add prod-mail-user-del prod-mail-user-pass prod-mail-admin-add \
+        prod-mail-domain-add prod-mail-domain-del prod-mail-restart \
+        prod-db-create prod-db-drop prod-db-user-add prod-db-user-pass prod-db-user-del prod-db-list \
+        prod-scraper-restart prod-scraper-rebuild prod-cassandra-cqlsh prod-cassandra-restart \
+        prod-rabbitmq-restart prod-elastic-restart
 
 help:
 	@echo "Lobbym Infrastructure Management Console"
@@ -43,6 +48,31 @@ help:
 	@echo "  make prod-mail-restart- Restart Mailu mail server stack on droplet"
 	@echo "  make prod-status      - Show status of all active production containers"
 	@echo "  make prod-logs        - Tail output logs from production containers"
+	@echo ""
+	@echo "Production Mailu Commands (use: USER=username DOMAIN=example.com PASS=password):"
+	@echo "  make prod-mail-user-add   - Create a new mail account"
+	@echo "  make prod-mail-user-del   - Delete a mail account"
+	@echo "  make prod-mail-user-pass  - Change password for mail account"
+	@echo "  make prod-mail-admin-add  - Create a new global mail admin"
+	@echo "  make prod-mail-domain-add - Add a new mail domain"
+	@echo "  make prod-mail-domain-del - Delete a mail domain"
+	@echo "  make prod-mail-restart    - Restart Mailu server containers"
+	@echo ""
+	@echo "Production Database Commands (use: DBNAME=dbname USER=username PASS=password):"
+	@echo "  make prod-db-create       - Create a new Postgres database"
+	@echo "  make prod-db-drop         - Delete a Postgres database"
+	@echo "  make prod-db-user-add     - Create a new Postgres user"
+	@echo "  make prod-db-user-pass    - Change Postgres user password"
+	@echo "  make prod-db-user-del     - Delete a Postgres user"
+	@echo "  make prod-db-list         - List all databases"
+	@echo ""
+	@echo "Production Services Commands:"
+	@echo "  make prod-scraper-restart - Restart the scraper container"
+	@echo "  make prod-scraper-rebuild - Rebuild and restart the scraper container"
+	@echo "  make prod-cassandra-cqlsh - Access Cassandra CQL shell"
+	@echo "  make prod-cassandra-restart- Restart Cassandra container"
+	@echo "  make prod-rabbitmq-restart - Restart RabbitMQ container"
+	@echo "  make prod-elastic-restart - Restart Elasticsearch & Kibana containers"
 
 local:
 	@echo "🌐 Creating lobbym-network network..."
@@ -195,3 +225,60 @@ prod-status:
 
 prod-logs:
 	cd production && sudo docker compose logs -f --tail=100
+
+prod-mail-user-add:
+	cd production && sudo docker compose -f mailu.yml exec admin flask mailu user "$(USER)" "$(DOMAIN)" "$(PASS)"
+
+prod-mail-user-del:
+	cd production && sudo docker compose -f mailu.yml exec admin flask mailu user-delete "$(USER)@$(DOMAIN)" --really
+
+prod-mail-user-pass:
+	cd production && sudo docker compose -f mailu.yml exec admin flask mailu password "$(USER)" "$(DOMAIN)" "$(PASS)"
+
+prod-mail-admin-add:
+	cd production && sudo docker compose -f mailu.yml exec admin flask mailu admin "$(USER)" "$(DOMAIN)" "$(PASS)"
+
+prod-mail-domain-add:
+	cd production && sudo docker compose -f mailu.yml exec admin flask mailu domain "$(DOMAIN)"
+
+prod-mail-domain-del:
+	cd production && sudo docker compose -f mailu.yml exec admin flask mailu domain-delete "$(DOMAIN)"
+
+prod-mail-restart:
+	cd production && sudo docker compose -f mailu.yml restart front resolver admin imap smtp antispam webmail
+
+prod-db-create:
+	sudo docker exec -it lobbym-postgres psql -U postgres -c "CREATE DATABASE $(DBNAME);"
+
+prod-db-drop:
+	sudo docker exec -it lobbym-postgres psql -U postgres -c "DROP DATABASE $(DBNAME);"
+
+prod-db-user-add:
+	sudo docker exec -it lobbym-postgres psql -U postgres -c "CREATE USER $(USER) WITH PASSWORD '$(PASS)';"
+
+prod-db-user-pass:
+	sudo docker exec -it lobbym-postgres psql -U postgres -c "ALTER USER $(USER) WITH PASSWORD '$(PASS)';"
+
+prod-db-user-del:
+	sudo docker exec -it lobbym-postgres psql -U postgres -c "DROP USER $(USER);"
+
+prod-db-list:
+	sudo docker exec -it lobbym-postgres psql -U postgres -c "\l"
+
+prod-scraper-restart:
+	cd production && sudo docker compose restart lobbym-scraper
+
+prod-scraper-rebuild:
+	cd production && sudo docker compose up -d --build lobbym-scraper
+
+prod-cassandra-cqlsh:
+	sudo docker exec -it lobbym-cassandra cqlsh
+
+prod-cassandra-restart:
+	cd production && sudo docker compose restart cassandra
+
+prod-rabbitmq-restart:
+	cd production && sudo docker compose restart rabbitmq
+
+prod-elastic-restart:
+	cd production && sudo docker compose restart elasticsearch kibana
