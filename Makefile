@@ -263,7 +263,7 @@ prod-app-start: prod-install-deps prod-repos-pull prod-env-generate
 	docker run --rm -v "/var/www/$(REPORT_DOMAIN):/app" -w /app node:22-alpine npm run build || true
 
 	@echo "📦 Installing Node dependencies and building Frontend Next.js app..."
-	docker run --rm -v "/var/www/$(FRONT_DOMAIN):/app" -w /app node:22-alpine sh -c "corepack enable && corepack prepare pnpm@latest --activate && pnpm install --no-frozen-lockfile --ignore-scripts && pnpm run build"
+	docker run --rm --env-file production/enviroment/front.env -v "/var/www/$(FRONT_DOMAIN):/app" -w /app node:22-alpine sh -c "corepack enable && corepack prepare pnpm@latest --activate && pnpm install --no-frozen-lockfile --ignore-scripts && pnpm run build"
 
 	@echo "🔐 Checking SSL certificates..."
 	mkdir -p production/certs
@@ -362,7 +362,7 @@ prod-front-build:
 	@echo "⚙️ Regenerating environment files..."
 	$(MAKE) prod-env-generate
 	@echo "📦 Rebuilding Frontend Next.js app..."
-	docker run --rm -v "/var/www/$(FRONT_DOMAIN):/app" -w /app node:22-alpine sh -c "corepack enable && corepack prepare pnpm@latest --activate && pnpm install --no-frozen-lockfile --ignore-scripts && pnpm run build"
+	docker run --rm --env-file production/enviroment/front.env -v "/var/www/$(FRONT_DOMAIN):/app" -w /app node:22-alpine sh -c "corepack enable && corepack prepare pnpm@latest --activate && pnpm install --no-frozen-lockfile --ignore-scripts && pnpm run build"
 	@echo "🔄 Restarting frontend container..."
 	cd production && sudo docker compose restart lobbym-front
 
@@ -377,7 +377,7 @@ prod-front-init: prod-env-generate
 		git -C /var/www/$(FRONT_DOMAIN) pull; \
 	fi
 	@echo "📦 Rebuilding Frontend Next.js app..."
-	docker run --rm -v "/var/www/$(FRONT_DOMAIN):/app" -w /app node:22-alpine sh -c "corepack enable && corepack prepare pnpm@latest --activate && pnpm install --no-frozen-lockfile --ignore-scripts && pnpm run build"
+	docker run --rm --env-file production/enviroment/front.env -v "/var/www/$(FRONT_DOMAIN):/app" -w /app node:22-alpine sh -c "corepack enable && corepack prepare pnpm@latest --activate && pnpm install --no-frozen-lockfile --ignore-scripts && pnpm run build"
 	@echo "🔄 Restarting frontend container..."
 	cd production && sudo docker compose restart lobbym-front
 
