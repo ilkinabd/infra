@@ -138,7 +138,7 @@ services:
       - "3002:3000"
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@lobbym-postgres:5432/lobbym
-      - JWT_SECRET=CYtHI1pjd47GsOU5eKkklRmNdnePdyx89J40VEmGqjCkJlYC1fEazWyd5HSbOmoW
+      - JWT_SECRET=__API_JWT_SECRET__
       - PORT=3000
     depends_on:
       - db
