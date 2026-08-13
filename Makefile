@@ -131,6 +131,10 @@ local:
 	docker exec lobbym-api-php chmod -R 777 storage bootstrap/cache || true
 	docker exec lobbym-admin-php chmod -R 777 storage bootstrap/cache || true
 	docker exec lobbym-report-php chmod -R 777 storage bootstrap/cache || true
+	@echo "🔗 Creating Laravel storage symlinks..."
+	docker exec lobbym-api-php php artisan storage:link || true
+	docker exec lobbym-admin-php php artisan storage:link || true
+	docker exec lobbym-report-php php artisan storage:link || true
 
 	@echo "🛠️ Running Admin Migrations & Seeding..."
 	docker exec lobbym-admin-php php artisan migrate:fresh --seed
@@ -291,6 +295,10 @@ prod-app-start: prod-install-deps prod-repos-pull prod-env-generate
 	sudo docker exec lobbym-api-php chmod -R 777 storage bootstrap/cache || true
 	sudo docker exec lobbym-admin-php chmod -R 777 storage bootstrap/cache || true
 	sudo docker exec lobbym-report-php chmod -R 777 storage bootstrap/cache || true
+	@echo "🔗 Creating Laravel storage symlinks..."
+	sudo docker exec lobbym-api-php php artisan storage:link || true
+	sudo docker exec lobbym-admin-php php artisan storage:link || true
+	sudo docker exec lobbym-report-php php artisan storage:link || true
 
 	@echo "🔑 Generating Application Encryption Keys..."
 	sudo docker exec lobbym-api-php php artisan config:clear || true
@@ -350,6 +358,10 @@ prod-backend-start:
 	sudo docker exec lobbym-api-php chmod -R 777 storage bootstrap/cache || true
 	sudo docker exec lobbym-admin-php chmod -R 777 storage bootstrap/cache || true
 	sudo docker exec lobbym-report-php chmod -R 777 storage bootstrap/cache || true
+	@echo "🔗 Creating Laravel storage symlinks..."
+	sudo docker exec lobbym-api-php php artisan storage:link || true
+	sudo docker exec lobbym-admin-php php artisan storage:link || true
+	sudo docker exec lobbym-report-php php artisan storage:link || true
 	@echo "🧹 Clearing config cache..."
 	sudo docker exec lobbym-api-php php artisan config:clear || true
 	sudo docker exec lobbym-admin-php php artisan config:clear || true
@@ -418,6 +430,10 @@ prod-backend-init: prod-env-generate
 	sudo docker exec lobbym-api-php chmod -R 777 storage bootstrap/cache || true
 	sudo docker exec lobbym-admin-php chmod -R 777 storage bootstrap/cache || true
 	sudo docker exec lobbym-report-php chmod -R 777 storage bootstrap/cache || true
+	@echo "🔗 Creating Laravel storage symlinks..."
+	sudo docker exec lobbym-api-php php artisan storage:link || true
+	sudo docker exec lobbym-admin-php php artisan storage:link || true
+	sudo docker exec lobbym-report-php php artisan storage:link || true
 
 	@echo "🔑 Generating Keys..."
 	sudo docker exec lobbym-api-php php artisan config:clear || true
