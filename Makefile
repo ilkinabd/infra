@@ -63,7 +63,6 @@ help:
 	@echo "  make prod-front-stop      - Stop frontend service"
 	@echo "  make prod-nginx-restart   - Restart Nginx proxy container on droplet"
 	@echo "  make prod-front-build     - Rebuild Next.js frontend and restart frontend container"
-	@echo "  make prod-front-init      - Pull latest frontend updates, rebuild Next.js, and restart container"
 	@echo "  make prod-db-migrate      - Run production Laravel database migrations safely"
 	@echo "  make prod-db-seed         - Run production Laravel database seeders"
 	@echo "  make prod-db-reset        - Drop all tables, run migrations and seeders on production (destructive)"
@@ -402,20 +401,6 @@ prod-front-build:
 	@echo "🔄 Restarting frontend container..."
 	cd production && sudo docker compose restart lobbym-front
 
-prod-front-init: prod-env-generate
-	@echo "🐙 Pulling latest frontend updates..."
-	@if [ ! -d "/var/www/$(FRONT_DOMAIN)" ]; then \
-		git clone -b $(FRONT_BRANCH) $(FRONT_REPO) /var/www/$(FRONT_DOMAIN); \
-		git -C /var/www/$(FRONT_DOMAIN) config core.filemode false; \
-	else \
-		git -C /var/www/$(FRONT_DOMAIN) config core.filemode false; \
-		git -C /var/www/$(FRONT_DOMAIN) checkout -B $(FRONT_BRANCH) --track origin/$(FRONT_BRANCH) 2>/dev/null || git -C /var/www/$(FRONT_DOMAIN) checkout $(FRONT_BRANCH); \
-		git -C /var/www/$(FRONT_DOMAIN) pull; \
-	fi
-	@echo "📦 Rebuilding Frontend Next.js app..."
-	docker run --rm --env-file production/enviroment/front.env -v "/var/www/$(FRONT_DOMAIN):/app" -w /app node:22-alpine sh -c "corepack enable && corepack prepare pnpm@latest --activate && pnpm install --no-frozen-lockfile --ignore-scripts && pnpm run build"
-	@echo "🔄 Restarting frontend container..."
-	cd production && sudo docker compose restart lobbym-front
 
 prod-mail-start: prod-install-deps
 	@echo "📂 Creating Mailu directories..."
