@@ -408,25 +408,12 @@ prod-backend-init:
 	docker run --rm -v "/var/www/$(REPORT_DOMAIN):/app" -w /app node:22-alpine npm run build || true
 
 	@echo "🔄 Restarting backend containers..."
-	cd production && sudo docker compose restart lobbym-api-php lobbym-admin-php lobbym-report-php nginx
+	cd production && sudo docker compose restart lobbym-api-php lobbym-admin-php lobbym-report-php
 
 	@echo "🔓 Fixing folder permissions..."
 	sudo docker exec lobbym-api-php chmod -R 777 storage bootstrap/cache || true
 	sudo docker exec lobbym-admin-php chmod -R 777 storage bootstrap/cache || true
 	sudo docker exec lobbym-report-php chmod -R 777 storage bootstrap/cache || true
-	@echo "🔗 Creating Laravel storage symlinks..."
-	sudo docker exec lobbym-api-php php artisan storage:link || true
-	sudo docker exec lobbym-admin-php php artisan storage:link || true
-	sudo docker exec lobbym-report-php php artisan storage:link || true
-
-	@echo "🔑 Generating Keys..."
-	sudo docker exec lobbym-api-php php artisan config:clear || true
-	sudo docker exec lobbym-admin-php php artisan config:clear || true
-	sudo docker exec lobbym-report-php php artisan config:clear || true
-	sudo docker exec lobbym-api-php php artisan key:generate --force || true
-	sudo docker exec lobbym-admin-php php artisan key:generate --force || true
-	sudo docker exec lobbym-report-php php artisan key:generate --force || true
-	sudo docker exec lobbym-api-php php artisan jwt:secret --force || true
 
 prod-nginx-restart:
 	cd production && sudo docker compose restart nginx
