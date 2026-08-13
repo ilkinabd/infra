@@ -339,11 +339,11 @@ prod-infra-start:
 		openssl req -x509 -newkey rsa:2048 -keyout production/certs/privkey.pem -out production/certs/fullchain.pem -days 365 -nodes -subj "/CN=lobbym.com"; \
 	fi
 	@echo "🚀 Starting backend infrastructure..."
-	cd production && sudo docker compose up -d --no-deps db redis elasticsearch kibana cassandra rabbitmq nginx
+	cd production && sudo docker compose up -d --no-deps db redis elasticsearch kibana cassandra rabbitmq nginx filebeat
 
 prod-infra-stop:
 	@echo "🛑 Stopping backend infrastructure..."
-	cd production && sudo docker compose stop db redis elasticsearch kibana cassandra rabbitmq nginx
+	cd production && sudo docker compose stop db redis elasticsearch kibana cassandra rabbitmq nginx filebeat
 
 prod-backend-start:
 	@echo "🐘 Installing Composer dependencies for production API, Admin, and Report..."
