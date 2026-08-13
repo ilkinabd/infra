@@ -392,32 +392,6 @@ prod-front-stop:
 	cd production && sudo docker compose stop lobbym-front
 
 prod-backend-init: 
-	@echo "🐙 Pulling latest backend updates..."
-	@if [ ! -d "/var/www/$(API_DOMAIN)" ]; then \
-		git clone -b $(API_BRANCH) $(API_REPO) /var/www/$(API_DOMAIN); \
-		git -C /var/www/$(API_DOMAIN) config core.filemode false; \
-	else \
-		git -C /var/www/$(API_DOMAIN) config core.filemode false; \
-		git -C /var/www/$(API_DOMAIN) checkout -B $(API_BRANCH) --track origin/$(API_BRANCH) 2>/dev/null || git -C /var/www/$(API_DOMAIN) checkout $(API_BRANCH); \
-		git -C /var/www/$(API_DOMAIN) pull; \
-	fi
-	@if [ ! -d "/var/www/$(ADMIN_DOMAIN)" ]; then \
-		git clone -b $(ADMIN_BRANCH) $(ADMIN_REPO) /var/www/$(ADMIN_DOMAIN); \
-		git -C /var/www/$(ADMIN_DOMAIN) config core.filemode false; \
-	else \
-		git -C /var/www/$(ADMIN_DOMAIN) config core.filemode false; \
-		git -C /var/www/$(ADMIN_DOMAIN) checkout -B $(ADMIN_BRANCH) --track origin/$(ADMIN_BRANCH) 2>/dev/null || git -C /var/www/$(ADMIN_DOMAIN) checkout $(ADMIN_BRANCH); \
-		git -C /var/www/$(ADMIN_DOMAIN) pull; \
-	fi
-	@if [ ! -d "/var/www/$(REPORT_DOMAIN)" ]; then \
-		git clone -b $(REPORT_BRANCH) $(REPORT_REPO) /var/www/$(REPORT_DOMAIN); \
-		git -C /var/www/$(REPORT_DOMAIN) config core.filemode false; \
-	else \
-		git -C /var/www/$(REPORT_DOMAIN) config core.filemode false; \
-		git -C /var/www/$(REPORT_DOMAIN) checkout -B $(REPORT_BRANCH) --track origin/$(REPORT_BRANCH) 2>/dev/null || git -C /var/www/$(REPORT_DOMAIN) checkout $(REPORT_BRANCH); \
-		git -C /var/www/$(REPORT_DOMAIN) pull; \
-	fi
-
 	@echo "🐘 Installing Composer dependencies for API, Admin, and Report..."
 	docker run --rm -v "/var/www/$(API_DOMAIN):/app" -w /app composer:2.6 composer install --ignore-platform-reqs
 	docker run --rm -v "/var/www/$(ADMIN_DOMAIN):/app" -w /app composer:2.6 composer install --ignore-platform-reqs
