@@ -365,7 +365,7 @@ prod-backend-start:
 	docker run --rm -v "/var/www/$(REPORT_DOMAIN):/app" -w /app node:22-alpine npm run build || true
 	mkdir -p production/scraper
 	@echo "🚀 Starting backend services..."
-	cd production && sudo docker compose up -d --build lobbym-api-php lobbym-admin-php lobbym-report-php lobbym-scraper lobbym-socket
+	cd production && sudo docker compose up -d --build --force-recreate lobbym-api-php lobbym-admin-php lobbym-report-php lobbym-scraper lobbym-socket
 	@echo "🔓 Fixing Laravel storage and cache folder permissions..."
 	sudo docker exec lobbym-api-php chmod -R 777 storage bootstrap/cache || true
 	sudo docker exec lobbym-admin-php chmod -R 777 storage bootstrap/cache || true
@@ -387,7 +387,7 @@ prod-front-start:
 	@echo "📦 Installing Node dependencies and building Frontend Next.js app..."
 	docker run --rm --env-file production/enviroment/front.env -v "/var/www/$(FRONT_DOMAIN):/app" -w /app node:22-alpine sh -c "corepack enable && corepack prepare pnpm@latest --activate && pnpm install --no-frozen-lockfile --ignore-scripts && pnpm run build"
 	@echo "🚀 Starting frontend service..."
-	cd production && sudo docker compose up -d --build lobbym-front
+	cd production && sudo docker compose up -d --build --force-recreate lobbym-front
 
 prod-front-stop:
 	@echo "🛑 Stopping frontend service..."
