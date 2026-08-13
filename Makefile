@@ -32,7 +32,8 @@ endef
         prod-mail-domain-add prod-mail-domain-del prod-mail-restart \
         prod-db-create prod-db-drop prod-db-user-add prod-db-user-pass prod-db-user-del prod-db-list \
         prod-scraper-restart prod-scraper-rebuild prod-cassandra-cqlsh prod-cassandra-restart \
-        prod-rabbitmq-restart prod-elastic-restart
+        prod-rabbitmq-restart prod-elastic-restart \
+        prod-infra-start prod-infra-stop prod-backend-start prod-backend-stop prod-front-start prod-front-stop
 
 help:
 	@echo "Lobbym Infrastructure Management Console"
@@ -52,6 +53,12 @@ help:
 	@echo "  make prod-app-start       - Start main Lobbym application stack on droplet"
 	@echo "  make prod-app-stop        - Stop main Lobbym application stack on droplet"
 	@echo "  make prod-app-restart     - Restart main Lobbym application stack on droplet"
+	@echo "  make prod-infra-start     - Start backend infrastructure (db, redis, cassandra, rabbitmq, nginx, kibana, elasticsearch)"
+	@echo "  make prod-infra-stop      - Stop backend infrastructure"
+	@echo "  make prod-backend-start   - Build and start backend services (api, admin, report, scraper, socket)"
+	@echo "  make prod-backend-stop    - Stop backend services"
+	@echo "  make prod-front-start     - Build and start frontend service (lobbym-front)"
+	@echo "  make prod-front-stop      - Stop frontend service"
 	@echo "  make prod-backend-init    - Pull, build, keygen, and restart only the API, Admin, and Report services"
 	@echo "  make prod-nginx-restart   - Restart Nginx proxy container on droplet"
 	@echo "  make prod-front-build     - Rebuild Next.js frontend and restart frontend container"
@@ -225,6 +232,10 @@ prod-env-init:
 		echo "🔑 Generating REPORT_APP_KEY in .env..."; \
 		sed -i "s|^REPORT_APP_KEY=.*|REPORT_APP_KEY=base64:$$(openssl rand -base64 32)|" .env; \
 	fi
+	@if grep -q "^API_JWT_SECRET=\s*$$" .env; then \
+		echo "🔑 Generating API_JWT_SECRET in .env..."; \
+		sed -i "s|^API_JWT_SECRET=.*|API_JWT_SECRET=$$(openssl rand -base64 32)|" .env; \
+	fi
 
 prod-env-generate: prod-env-init
 	@python3 production/generate_envs.py
@@ -295,6 +306,67 @@ prod-app-stop:
 	cd production && sudo docker compose down
 
 prod-app-restart: prod-app-stop prod-app-start
+
+prod-infra-start:
+	@echo "🔧 Configuring system limits for Elasticsearch..."
+	sudo sysctl -w vm.max_map_count=262144 || true
+	@if ! grep -q "vm.max_map_count=262144" /etc/sysctl.conf 2>/dev/null; then \
+		echo "vm.max_map_count=262144" | sudo tee -a /etc/sysctl.conf > /dev/null; \
+	fi
+	@echo "🌐 Creating lobbym-network..."
+	sudo docker network create lobbym-network || true
+	@echo "🔐 Checking SSL certificates..."
+	mkdir -p production/certs
+	@if [ ! -f "production/certs/fullchain.pem" ] || [ ! -f "production/certs/privkey.pem" ]; then \
+		echo "⚠️ SSL certificates not found. Generating temporary self-signed dummy certificates..."; \
+		openssl req -x509 -newkey rsa:2048 -keyout production/certs/privkey.pem -out production/certs/fullchain.pem -days 365 -nodes -subj "/CN=lobbym.com"; \
+	fi
+	@echo "🚀 Starting backend infrastructure..."
+	cd production && sudo docker compose up -d db redis elasticsearch kibana cassandra rabbitmq nginx
+
+prod-infra-stop:
+	@echo "🛑 Stopping backend infrastructure..."
+	cd production && sudo docker compose stop db redis elasticsearch kibana cassandra rabbitmq nginx
+
+prod-backend-start:
+	@echo "🐘 Installing Composer dependencies for production API, Admin, and Report..."
+	docker run --rm -v "/var/www/$(API_DOMAIN):/app" -w /app composer:2.6 composer install --ignore-platform-reqs
+	docker run --rm -v "/var/www/$(ADMIN_DOMAIN):/app" -w /app composer:2.6 composer install --ignore-platform-reqs
+	docker run --rm -v "/var/www/$(REPORT_DOMAIN):/app" -w /app composer:2.6 composer install --ignore-platform-reqs
+	@echo "📦 Building Admin and Report assets..."
+	if [ ! -d "/var/www/$(ADMIN_DOMAIN)/node_modules" ]; then \
+		docker run --rm -v "/var/www/$(ADMIN_DOMAIN):/app" -w /app node:22-alpine npm install; \
+	fi
+	docker run --rm -v "/var/www/$(ADMIN_DOMAIN):/app" -w /app node:22-alpine npm run build || true
+	if [ ! -d "/var/www/$(REPORT_DOMAIN)/node_modules" ]; then \
+		docker run --rm -v "/var/www/$(REPORT_DOMAIN):/app" -w /app node:22-alpine npm install; \
+	fi
+	docker run --rm -v "/var/www/$(REPORT_DOMAIN):/app" -w /app node:22-alpine npm run build || true
+	mkdir -p production/scraper
+	@echo "🚀 Starting backend services..."
+	cd production && sudo docker compose up -d --build lobbym-api-php lobbym-admin-php lobbym-report-php lobbym-scraper lobbym-socket
+	@echo "🔓 Fixing Laravel storage and cache folder permissions..."
+	sudo docker exec lobbym-api-php chmod -R 777 storage bootstrap/cache || true
+	sudo docker exec lobbym-admin-php chmod -R 777 storage bootstrap/cache || true
+	sudo docker exec lobbym-report-php chmod -R 777 storage bootstrap/cache || true
+	@echo "🧹 Clearing config cache..."
+	sudo docker exec lobbym-api-php php artisan config:clear || true
+	sudo docker exec lobbym-admin-php php artisan config:clear || true
+	sudo docker exec lobbym-report-php php artisan config:clear || true
+
+prod-backend-stop:
+	@echo "🛑 Stopping backend services..."
+	cd production && sudo docker compose stop lobbym-api-php lobbym-admin-php lobbym-report-php lobbym-scraper lobbym-socket
+
+prod-front-start:
+	@echo "📦 Installing Node dependencies and building Frontend Next.js app..."
+	docker run --rm --env-file production/enviroment/front.env -v "/var/www/$(FRONT_DOMAIN):/app" -w /app node:22-alpine sh -c "corepack enable && corepack prepare pnpm@latest --activate && pnpm install --no-frozen-lockfile --ignore-scripts && pnpm run build"
+	@echo "🚀 Starting frontend service..."
+	cd production && sudo docker compose up -d --build lobbym-front
+
+prod-front-stop:
+	@echo "🛑 Stopping frontend service..."
+	cd production && sudo docker compose stop lobbym-front
 
 prod-backend-init: prod-env-generate
 	@echo "🐙 Pulling latest backend updates..."
