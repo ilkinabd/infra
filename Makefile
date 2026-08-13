@@ -61,7 +61,6 @@ help:
 	@echo "  make prod-backend-stop    - Stop backend services"
 	@echo "  make prod-front-start     - Build and start frontend service (lobbym-front)"
 	@echo "  make prod-front-stop      - Stop frontend service"
-	@echo "  make prod-backend-init    - Pull, build, keygen, and restart only the API, Admin, and Report services"
 	@echo "  make prod-nginx-restart   - Restart Nginx proxy container on droplet"
 	@echo "  make prod-front-build     - Rebuild Next.js frontend and restart frontend container"
 	@echo "  make prod-front-init      - Pull latest frontend updates, rebuild Next.js, and restart container"
@@ -391,29 +390,6 @@ prod-front-stop:
 	@echo "🛑 Stopping frontend service..."
 	cd production && sudo docker compose stop lobbym-front
 
-prod-backend-init: 
-	@echo "🐘 Installing Composer dependencies for API, Admin, and Report..."
-	docker run --rm -v "/var/www/$(API_DOMAIN):/app" -w /app composer:2.6 composer install --ignore-platform-reqs
-	docker run --rm -v "/var/www/$(ADMIN_DOMAIN):/app" -w /app composer:2.6 composer install --ignore-platform-reqs
-	docker run --rm -v "/var/www/$(REPORT_DOMAIN):/app" -w /app composer:2.6 composer install --ignore-platform-reqs
-
-	@echo "📦 Building Admin and Report frontend assets..."
-	if [ ! -d "/var/www/$(ADMIN_DOMAIN)/node_modules" ]; then \
-		docker run --rm -v "/var/www/$(ADMIN_DOMAIN):/app" -w /app node:22-alpine npm install; \
-	fi
-	docker run --rm -v "/var/www/$(ADMIN_DOMAIN):/app" -w /app node:22-alpine npm run build || true
-	if [ ! -d "/var/www/$(REPORT_DOMAIN)/node_modules" ]; then \
-		docker run --rm -v "/var/www/$(REPORT_DOMAIN):/app" -w /app node:22-alpine npm install; \
-	fi
-	docker run --rm -v "/var/www/$(REPORT_DOMAIN):/app" -w /app node:22-alpine npm run build || true
-
-	@echo "🔄 Restarting backend containers..."
-	cd production && sudo docker compose restart lobbym-api-php lobbym-admin-php lobbym-report-php
-
-	@echo "🔓 Fixing folder permissions..."
-	sudo docker exec lobbym-api-php chmod -R 777 storage bootstrap/cache || true
-	sudo docker exec lobbym-admin-php chmod -R 777 storage bootstrap/cache || true
-	sudo docker exec lobbym-report-php chmod -R 777 storage bootstrap/cache || true
 
 prod-nginx-restart:
 	cd production && sudo docker compose restart nginx
