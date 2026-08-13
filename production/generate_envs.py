@@ -150,6 +150,7 @@ def main():
         template = template.replace('__REPORT_DOMAIN__', services['REPORT']['domain'])
         template = template.replace('__SOCKET_DOMAIN__', services['SOCKET']['domain'])
         template = template.replace('__API_JWT_SECRET__', env.get('API_JWT_SECRET', ''))
+        template = template.replace('__API_DB_PASSWORD__', env.get('API_DB_PASSWORD', 'postgres'))
         
         with open(compose_output, 'w') as f:
             f.write(template)
