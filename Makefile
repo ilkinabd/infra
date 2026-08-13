@@ -30,7 +30,7 @@ endef
         prod-mail-start prod-mail-stop prod-mail-restart prod-status prod-logs \
         prod-mail-user-add prod-mail-user-del prod-mail-user-pass prod-mail-admin-add \
         prod-mail-domain-add prod-mail-domain-del prod-mail-restart \
-        prod-db-create prod-db-drop prod-db-user-add prod-db-user-pass prod-db-user-del prod-db-list prod-db-reset \
+        prod-db-create prod-db-drop prod-db-user-add prod-db-user-pass prod-db-user-del prod-db-list prod-db-reset prod-storage-link \
         prod-scraper-restart prod-scraper-rebuild prod-cassandra-cqlsh prod-cassandra-restart \
         prod-rabbitmq-restart prod-elastic-restart \
         prod-infra-start prod-infra-stop prod-backend-start prod-backend-stop prod-front-start prod-front-stop
@@ -66,6 +66,7 @@ help:
 	@echo "  make prod-db-migrate      - Run production Laravel database migrations safely"
 	@echo "  make prod-db-seed         - Run production Laravel database seeders"
 	@echo "  make prod-db-reset        - Drop all tables, run migrations and seeders on production (destructive)"
+	@echo "  make prod-storage-link    - Create public storage symlinks for Laravel services"
 	@echo "  make prod-mail-start      - Start Mailu mail server stack on droplet"
 	@echo "  make prod-mail-stop       - Stop Mailu mail server stack on droplet"
 	@echo "  make prod-mail-restart    - Restart Mailu mail server stack on droplet"
@@ -615,6 +616,12 @@ prod-db-reset:
 	@echo "⚠️ Resetting production database '$(ADMIN_DB_DATABASE)' using Postgres container..."
 	sudo docker exec lobbym-postgres psql -U postgres -c "DROP DATABASE IF EXISTS $(ADMIN_DB_DATABASE) WITH (FORCE);"
 	sudo docker exec lobbym-postgres psql -U postgres -c "CREATE DATABASE $(ADMIN_DB_DATABASE);"
+
+prod-storage-link:
+	@echo "🔗 Creating Laravel storage symlinks on production..."
+	sudo docker exec lobbym-api-php php artisan storage:link || true
+	sudo docker exec lobbym-admin-php php artisan storage:link || true
+	sudo docker exec lobbym-report-php php artisan storage:link || true
 
 prod-scraper-restart:
 	cd production && sudo docker compose restart lobbym-scraper
