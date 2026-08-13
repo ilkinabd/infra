@@ -599,9 +599,6 @@ prod-db-reset:
 	@echo "⚠️ Resetting production database '$(ADMIN_DB_DATABASE)' using Postgres container..."
 	sudo docker exec lobbym-postgres psql -U postgres -c "DROP DATABASE IF EXISTS $(ADMIN_DB_DATABASE) WITH (FORCE);"
 	sudo docker exec lobbym-postgres psql -U postgres -c "CREATE DATABASE $(ADMIN_DB_DATABASE);"
-	@echo "🛠️ Running migrations and seeding..."
-	sudo docker exec lobbym-admin-php php artisan migrate --force
-	sudo docker exec lobbym-admin-php php artisan db:seed --force
 
 prod-scraper-restart:
 	cd production && sudo docker compose restart lobbym-scraper
