@@ -25,14 +25,14 @@ define run_pnpm
 	docker run --rm -v "$(1):/app" -w /app $(DOCKER_UID_GID) -e COREPACK_ENABLE_AUTO_CONFIRM=1 -e COREPACK_HOME=/tmp/corepack node:22-alpine corepack pnpm $(2)
 endef
 
-.PHONY: help local local-clean hosts-add hosts-remove \
+.PHONY: help local local-clean local-db-seed local-search-reindex hosts-add hosts-remove \
         prod-install-deps prod-app-start prod-app-stop prod-app-restart \
         prod-mail-start prod-mail-stop prod-mail-restart prod-status prod-logs \
         prod-mail-user-add prod-mail-user-del prod-mail-user-pass prod-mail-admin-add \
         prod-mail-domain-add prod-mail-domain-del prod-mail-restart \
         prod-db-create prod-db-drop prod-db-user-add prod-db-user-pass prod-db-user-del prod-db-list prod-db-reset prod-storage-link \
         prod-scraper-restart prod-scraper-rebuild prod-cassandra-cqlsh prod-cassandra-restart \
-        prod-rabbitmq-restart prod-elastic-restart \
+        prod-rabbitmq-restart prod-elastic-restart prod-search-reindex \
         prod-infra-start prod-infra-stop prod-backend-start prod-backend-stop prod-front-start prod-front-stop
 
 help:
@@ -41,6 +41,8 @@ help:
 	@echo "Local Environment Commands:"
 	@echo "  make local            - Build and start the entire local development ecosystem"
 	@echo "  make local-clean      - Stop and clean local docker compose containers and volumes"
+	@echo "  make local-db-seed    - Run database migrations and seeders for local environment"
+	@echo "  make local-search-reindex - Recreate and populate Elasticsearch search indexes"
 	@echo "  make hosts-add        - Add dev domains to Windows hosts file"
 	@echo "  make hosts-remove     - Remove dev domains from Windows hosts file"
 	@echo ""
@@ -105,6 +107,7 @@ help:
 	@echo "  make prod-cassandra-restart- Restart Cassandra container"
 	@echo "  make prod-rabbitmq-restart - Restart RabbitMQ container"
 	@echo "  make prod-elastic-restart - Restart Elasticsearch & Kibana containers"
+	@echo "  make prod-search-reindex  - Recreate and populate Elasticsearch search indexes on production"
 
 local:
 	@echo "🌐 Creating lobbym-network network..."
@@ -137,10 +140,16 @@ local:
 	docker exec lobbym-admin-php php artisan storage:link || true
 	docker exec lobbym-report-php php artisan storage:link || true
 
+
+	@echo "✅ Ecosystem is successfully started in development mode!"
+
+local-db-seed:
 	@echo "🛠️ Running Admin Migrations & Seeding..."
 	docker exec lobbym-admin-php php artisan migrate:fresh --seed
 
-	@echo "✅ Ecosystem is successfully started in development mode!"
+local-search-reindex:
+	@echo "🔍 Reindexing Elasticsearch search engine..."
+	docker exec lobbym-api-php php artisan search:reindex
 
 local-clean:
 	cd local && docker compose down -v
@@ -640,3 +649,7 @@ prod-rabbitmq-restart:
 
 prod-elastic-restart:
 	cd production && sudo docker compose restart elasticsearch kibana
+
+prod-search-reindex:
+	@echo "🔍 Reindexing Elasticsearch search engine on production..."
+	sudo docker exec lobbym-api-php php artisan search:reindex
