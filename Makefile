@@ -307,7 +307,7 @@ prod-app-stop:
 
 prod-app-restart: prod-app-stop prod-app-start
 
-prod-infra-start:
+prod-infra-start: prod-env-generate
 	@echo "🔧 Configuring system limits for Elasticsearch..."
 	sudo sysctl -w vm.max_map_count=262144 || true
 	@if ! grep -q "vm.max_map_count=262144" /etc/sysctl.conf 2>/dev/null; then \
@@ -328,7 +328,7 @@ prod-infra-stop:
 	@echo "🛑 Stopping backend infrastructure..."
 	cd production && sudo docker compose stop db redis elasticsearch kibana cassandra rabbitmq nginx
 
-prod-backend-start:
+prod-backend-start: prod-env-generate
 	@echo "🐘 Installing Composer dependencies for production API, Admin, and Report..."
 	docker run --rm -v "/var/www/$(API_DOMAIN):/app" -w /app composer:2.6 composer install --ignore-platform-reqs
 	docker run --rm -v "/var/www/$(ADMIN_DOMAIN):/app" -w /app composer:2.6 composer install --ignore-platform-reqs
@@ -358,7 +358,7 @@ prod-backend-stop:
 	@echo "🛑 Stopping backend services..."
 	cd production && sudo docker compose stop lobbym-api-php lobbym-admin-php lobbym-report-php lobbym-scraper lobbym-socket
 
-prod-front-start:
+prod-front-start: prod-env-generate
 	@echo "📦 Installing Node dependencies and building Frontend Next.js app..."
 	docker run --rm --env-file production/enviroment/front.env -v "/var/www/$(FRONT_DOMAIN):/app" -w /app node:22-alpine sh -c "corepack enable && corepack prepare pnpm@latest --activate && pnpm install --no-frozen-lockfile --ignore-scripts && pnpm run build"
 	@echo "🚀 Starting frontend service..."
