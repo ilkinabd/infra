@@ -24,6 +24,7 @@ services:
           - __ADMIN_DOMAIN__
           - __REPORT_DOMAIN__
           - __SOCKET_DOMAIN__
+          - __LOG_DOMAIN__
     depends_on:
       - lobbym-front
       - lobbym-api-php
@@ -183,6 +184,23 @@ services:
     volumes:
       - /var/www/__REPORT_DOMAIN__:/var/www/__REPORT_DOMAIN__
       - ./enviroment/report.env:/var/www/__REPORT_DOMAIN__/.env
+    networks:
+      - lobbym-network
+
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.11.1
+    container_name: lobbym-filebeat
+    user: root
+    restart: always
+    volumes:
+      - /var/www/__API_DOMAIN__/storage/logs:/var/log/api:ro
+      - /var/www/__ADMIN_DOMAIN__/storage/logs:/var/log/admin:ro
+      - /var/www/__REPORT_DOMAIN__/storage/logs:/var/log/report:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+    depends_on:
+      - elasticsearch
     networks:
       - lobbym-network
 

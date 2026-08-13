@@ -1,0 +1,38 @@
+filebeat.inputs:
+- type: filestream
+  id: api-logs
+  paths:
+    - /var/log/api/*.log
+  fields:
+    service: api
+- type: filestream
+  id: admin-logs
+  paths:
+    - /var/log/admin/*.log
+  fields:
+    service: admin
+- type: filestream
+  id: report-logs
+  paths:
+    - /var/log/report/*.log
+  fields:
+    service: report
+
+- type: container
+  id: docker-container-logs
+  paths:
+    - /var/lib/docker/containers/*/*.log
+  processors:
+    - add_docker_metadata:
+        host: "unix:///var/run/docker.sock"
+    - drop_event:
+        when:
+          not:
+            or:
+              - equals:
+                  container.name: "lobbym-postgres"
+              - equals:
+                  container.name: "lobbym-cassandra"
+
+output.elasticsearch:
+  hosts: ["http://lobbym-elasticsearch:9200"]
