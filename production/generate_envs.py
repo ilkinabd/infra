@@ -162,5 +162,21 @@ def main():
             
         print('✓ Compiled production docker-compose configuration.')
 
+    # Generate Nginx Basic Auth .htpasswd file for Kibana
+    log_user = env.get('LOG_USERNAME', 'admin')
+    log_pass = env.get('LOG_PASSWORD', 'admin')
+    if log_user and log_pass:
+        try:
+            import crypt
+            hashed_pass = crypt.crypt(log_pass)
+        except ImportError:
+            # Fallback to plain text if crypt is not available (e.g. windows local environment development)
+            hashed_pass = log_pass
+        
+        htpasswd_path = 'production/nginx/conf.d/.htpasswd'
+        with open(htpasswd_path, 'w') as f:
+            f.write(f"{log_user}:{hashed_pass}\n")
+        print(f'✓ Generated Basic Auth .htpasswd for user: {log_user}')
+
 if __name__ == '__main__':
     main()

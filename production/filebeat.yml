@@ -33,6 +33,8 @@ filebeat.inputs:
                   container.name: "lobbym-postgres"
               - equals:
                   container.name: "lobbym-cassandra"
+              - equals:
+                  container.name: "lobbym-front"
 
 output.elasticsearch:
   hosts: ["http://lobbym-elasticsearch:9200"]

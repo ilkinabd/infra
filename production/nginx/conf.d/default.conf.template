@@ -115,6 +115,9 @@ server {
     __LOG_SSL_CONFIG__
 
     location / {
+        auth_basic "Restricted Logging Access";
+        auth_basic_user_file /etc/nginx/conf.d/.htpasswd;
+
         set $upstream_log "lobbym-kibana:5601";
         proxy_pass http://$upstream_log;
         proxy_set_header Host $host;

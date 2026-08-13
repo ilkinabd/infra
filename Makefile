@@ -249,6 +249,10 @@ prod-env-init:
 		echo "🔑 Generating API_JWT_SECRET in .env..."; \
 		sed -i "s|^API_JWT_SECRET=.*|API_JWT_SECRET=$$(openssl rand -base64 32)|" .env; \
 	fi
+	@if grep -q "^LOG_PASSWORD=\s*$$" .env; then \
+		echo "🔑 Generating LOG_PASSWORD in .env..."; \
+		sed -i "s|^LOG_PASSWORD=.*|LOG_PASSWORD=$$(openssl rand -base64 12)|" .env; \
+	fi
 
 prod-env-generate: prod-env-init
 	@python3 production/generate_envs.py
