@@ -322,7 +322,7 @@ prod-infra-start: prod-env-generate
 		openssl req -x509 -newkey rsa:2048 -keyout production/certs/privkey.pem -out production/certs/fullchain.pem -days 365 -nodes -subj "/CN=lobbym.com"; \
 	fi
 	@echo "🚀 Starting backend infrastructure..."
-	cd production && sudo docker compose up -d db redis elasticsearch kibana cassandra rabbitmq nginx
+	cd production && sudo docker compose up -d --no-deps db redis elasticsearch kibana cassandra rabbitmq nginx
 
 prod-infra-stop:
 	@echo "🛑 Stopping backend infrastructure..."
