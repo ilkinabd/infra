@@ -391,7 +391,7 @@ prod-front-stop:
 	@echo "🛑 Stopping frontend service..."
 	cd production && sudo docker compose stop lobbym-front
 
-prod-backend-init: prod-env-generate
+prod-backend-init: 
 	@echo "🐙 Pulling latest backend updates..."
 	@if [ ! -d "/var/www/$(API_DOMAIN)" ]; then \
 		git clone -b $(API_BRANCH) $(API_REPO) /var/www/$(API_DOMAIN); \
