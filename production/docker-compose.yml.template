@@ -161,6 +161,23 @@ services:
     networks:
       - lobbym-network
 
+  lobbym-email-consumer:
+    build:
+      context: /var/www/__API_DOMAIN__
+      dockerfile: deployments/Dockerfile
+    container_name: lobbym-email-consumer
+    restart: always
+    working_dir: /var/www/__API_DOMAIN__
+    volumes:
+      - /var/www/__API_DOMAIN__:/var/www/__API_DOMAIN__
+      - ./enviroment/api.env:/var/www/__API_DOMAIN__/.env
+    networks:
+      - lobbym-network
+    command: php artisan emails:consume
+    depends_on:
+      - rabbitmq
+      - db
+
   lobbym-admin-php:
     build:
       context: /var/www/__ADMIN_DOMAIN__

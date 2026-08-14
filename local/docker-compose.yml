@@ -171,6 +171,25 @@ services:
     networks:
       - lobbym-network
 
+  lobbym-email-consumer:
+    image: local-lobbym-api-php
+    container_name: lobbym-email-consumer
+    restart: always
+    working_dir: /var/www/dev.api.lobbym.com
+    volumes:
+      - ../../dev.api.lobbym.com:/var/www/dev.api.lobbym.com
+      - ../../dev.api.lobbym.com/deployments/.env:/var/www/dev.api.lobbym.com/.env
+    env_file:
+      - ../../dev.api.lobbym.com/deployments/.env
+    environment:
+      - HOME=/tmp
+    networks:
+      - lobbym-network
+    command: php artisan emails:consume
+    depends_on:
+      - rabbitmq
+      - db
+
   lobbym-admin-php:
     build:
       context: ../../dev.admin.lobbym.com
