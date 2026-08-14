@@ -4,6 +4,8 @@ production/enviroment/
 production/front.env
 production/nginx/conf.d/default.conf
 production/docker-compose.yml
+production/nginx/conf.d/.htpasswd
+
 
 # Mail server configurations
 mailu/mailu.env
