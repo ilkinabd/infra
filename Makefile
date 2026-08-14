@@ -25,7 +25,7 @@ define run_pnpm
 	docker run --rm -v "$(1):/app" -w /app $(DOCKER_UID_GID) -e COREPACK_ENABLE_AUTO_CONFIRM=1 -e COREPACK_HOME=/tmp/corepack node:22-alpine corepack pnpm $(2)
 endef
 
-.PHONY: help local local-clean local-db-seed local-search-reindex hosts-add hosts-remove \
+.PHONY: help local local-clean local-front-build local-db-seed local-search-reindex local-logs-clear hosts-add hosts-remove \
         prod-install-deps prod-app-start prod-app-stop prod-app-restart \
         prod-mail-start prod-mail-stop prod-mail-restart prod-status prod-logs \
         prod-mail-user-add prod-mail-user-del prod-mail-user-pass prod-mail-admin-add \
@@ -41,8 +41,10 @@ help:
 	@echo "Local Environment Commands:"
 	@echo "  make local            - Build and start the entire local development ecosystem"
 	@echo "  make local-clean      - Stop and clean local docker compose containers and volumes"
+	@echo "  make local-front-build - Rebuild Next.js frontend and restart frontend container"
 	@echo "  make local-db-seed    - Run database migrations and seeders for local environment"
 	@echo "  make local-search-reindex - Recreate and populate Elasticsearch search indexes"
+	@echo "  make local-logs-clear - Empty the mail_worker.log file"
 	@echo "  make hosts-add        - Add dev domains to Windows hosts file"
 	@echo "  make hosts-remove     - Remove dev domains from Windows hosts file"
 	@echo ""
@@ -141,6 +143,12 @@ local:
 
 	@echo "✅ Ecosystem is successfully started in development mode!"
 
+local-front-build:
+	@echo "⚙️ Rebuilding local Next.js frontend using temporary container..."
+	docker run --rm -v "$(FRONT_DIR):/app" -w /app -e NODE_OPTIONS="--max-old-space-size=1536" -e COREPACK_ENABLE_AUTO_CONFIRM=1 -e COREPACK_HOME=/tmp/corepack node:22-alpine sh -c "corepack enable && corepack prepare pnpm@latest --activate && pnpm run build"
+	@echo "🔄 Starting/Restarting local frontend container in production mode..."
+	cd local && FRONT_COMMAND=start docker compose up -d lobbym-front
+
 local-db-seed:
 	@echo "🛠️ Running Admin Migrations & Seeding..."
 	docker exec lobbym-admin-php php artisan migrate:fresh --seed
@@ -152,6 +160,10 @@ local-search-reindex:
 local-clean:
 	cd local && docker compose down -v
 	docker rm -f lobbym-front || true
+
+local-logs-clear:
+	@echo "🧹 Clearing mail_worker logs..."
+	docker exec lobbym-api-php sh -c "> /var/www/dev.api.lobbym.com/storage/logs/mail_worker.log"
 
 hosts-add:
 	@echo "Adding dev domains to Windows hosts file..."

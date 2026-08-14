@@ -152,7 +152,7 @@ services:
       - PORT=3000
     networks:
       - lobbym-network
-    command: dev
+    command: ${FRONT_COMMAND:-dev}
 
   lobbym-api-php:
     build:
@@ -186,6 +186,25 @@ services:
     networks:
       - lobbym-network
     command: php artisan emails:consume
+    depends_on:
+      - rabbitmq
+      - db
+
+  lobbym-notification-consumer:
+    image: local-lobbym-api-php
+    container_name: lobbym-notification-consumer
+    restart: always
+    working_dir: /var/www/dev.api.lobbym.com
+    volumes:
+      - ../../dev.api.lobbym.com:/var/www/dev.api.lobbym.com
+      - ../../dev.api.lobbym.com/deployments/.env:/var/www/dev.api.lobbym.com/.env
+    env_file:
+      - ../../dev.api.lobbym.com/deployments/.env
+    environment:
+      - HOME=/tmp
+    networks:
+      - lobbym-network
+    command: php artisan notifications:consume
     depends_on:
       - rabbitmq
       - db
