@@ -365,7 +365,7 @@ prod-backend-start:
 	docker run --rm -v "/var/www/$(REPORT_DOMAIN):/app" -w /app node:22-alpine npm run build || true
 	mkdir -p production/scraper
 	@echo "🚀 Starting backend services..."
-	cd production && sudo docker compose up -d --build --force-recreate lobbym-api-php lobbym-admin-php lobbym-report-php lobbym-scraper lobbym-socket
+	cd production && sudo docker compose up -d --build --force-recreate lobbym-api-php lobbym-admin-php lobbym-report-php lobbym-scraper lobbym-socket lobbym-email-consumer
 	@echo "🔓 Fixing Laravel storage and cache folder permissions..."
 	sudo docker exec lobbym-api-php chmod -R 777 storage bootstrap/cache || true
 	sudo docker exec lobbym-admin-php chmod -R 777 storage bootstrap/cache || true
@@ -381,7 +381,7 @@ prod-backend-start:
 
 prod-backend-stop:
 	@echo "🛑 Stopping backend services..."
-	cd production && sudo docker compose stop lobbym-api-php lobbym-admin-php lobbym-report-php lobbym-scraper lobbym-socket
+	cd production && sudo docker compose stop lobbym-api-php lobbym-admin-php lobbym-report-php lobbym-scraper lobbym-socket lobbym-email-consumer
 
 prod-front-start:
 	@echo "📦 Installing Node dependencies and building Frontend Next.js app..."
@@ -484,6 +484,9 @@ prod-logs-api:
 prod-logs-front:
 	cd production && sudo docker compose logs -f --tail=100 lobbym-front
 
+prod-logs-consumer:
+	cd production && sudo docker compose logs -f --tail=100 lobbym-email-consumer
+
 prod-laravel-logs-api:
 	tail -n 100 -f /var/www/$(API_DOMAIN)/storage/logs/laravel.log
 
@@ -492,6 +495,9 @@ prod-laravel-logs-admin:
 
 prod-laravel-logs-report:
 	tail -n 100 -f /var/www/$(REPORT_DOMAIN)/storage/logs/laravel.log
+
+prod-laravel-logs-consumer:
+	tail -n 100 -f /var/www/$(API_DOMAIN)/storage/logs/mail_worker.log
 
 prod-nginx-config:
 	@echo "📂 Listing Nginx config directory inside container..."
