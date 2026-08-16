@@ -132,6 +132,7 @@ local:
 	done
 
 	@echo "🔓 Fixing folder permissions..."
+	docker exec lobbym-api-php mkdir -p storage/app/payments || true
 	docker exec lobbym-api-php chmod -R 777 storage bootstrap/cache || true
 	docker exec lobbym-admin-php chmod -R 777 storage bootstrap/cache || true
 	docker exec lobbym-report-php chmod -R 777 storage bootstrap/cache || true
@@ -316,6 +317,7 @@ prod-app-start: prod-install-deps prod-repos-pull prod-env-generate
 	cd production && sudo docker compose up -d --build
 
 	@echo "🔓 Fixing Laravel storage and cache folder permissions..."
+	sudo docker exec lobbym-api-php mkdir -p storage/app/payments || true
 	sudo docker exec lobbym-api-php chmod -R 777 storage bootstrap/cache || true
 	sudo docker exec lobbym-admin-php chmod -R 777 storage bootstrap/cache || true
 	sudo docker exec lobbym-report-php chmod -R 777 storage bootstrap/cache || true
@@ -379,6 +381,7 @@ prod-backend-start:
 	@echo "🚀 Starting backend services..."
 	cd production && sudo docker compose up -d --build --force-recreate lobbym-api-php lobbym-admin-php lobbym-report-php lobbym-scraper lobbym-socket lobbym-email-consumer lobbym-notification-consumer
 	@echo "🔓 Fixing Laravel storage and cache folder permissions..."
+	sudo docker exec lobbym-api-php mkdir -p storage/app/payments || true
 	sudo docker exec lobbym-api-php chmod -R 777 storage bootstrap/cache || true
 	sudo docker exec lobbym-admin-php chmod -R 777 storage bootstrap/cache || true
 	sudo docker exec lobbym-report-php chmod -R 777 storage bootstrap/cache || true
