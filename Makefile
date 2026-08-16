@@ -415,7 +415,7 @@ prod-front-build:
 	@echo "📦 Rebuilding Frontend Next.js app..."
 	docker run --rm --env-file production/enviroment/front.env -v "/var/www/$(FRONT_DOMAIN):/app" -w /app node:22-alpine sh -c "corepack enable && corepack prepare pnpm@latest --activate && pnpm install --no-frozen-lockfile --ignore-scripts && pnpm run build"
 	@echo "🔄 Restarting frontend container..."
-	cd production && sudo docker compose restart lobbym-front
+	cd production && sudo docker compose up -d --force-recreate lobbym-front
 
 
 prod-mail-start: prod-install-deps
