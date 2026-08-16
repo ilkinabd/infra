@@ -164,6 +164,7 @@ services:
     volumes:
       - ../../dev.api.lobbym.com:/var/www/dev.api.lobbym.com
       - ../../dev.api.lobbym.com/deployments/.env:/var/www/dev.api.lobbym.com/.env
+      - /var/run/docker.sock:/var/run/docker.sock
     env_file:
       - ../../dev.api.lobbym.com/deployments/.env
     environment:

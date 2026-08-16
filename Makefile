@@ -147,7 +147,7 @@ local-front-build:
 	@echo "⚙️ Rebuilding local Next.js frontend using temporary container..."
 	docker run --rm -v "$(FRONT_DIR):/app" -w /app -e NODE_OPTIONS="--max-old-space-size=1536" -e COREPACK_ENABLE_AUTO_CONFIRM=1 -e COREPACK_HOME=/tmp/corepack node:22-alpine sh -c "corepack enable && corepack prepare pnpm@latest --activate && pnpm run build"
 	@echo "🔄 Starting/Restarting local frontend container in production mode..."
-	cd local && FRONT_COMMAND=start docker compose up -d lobbym-front
+	cd local && FRONT_COMMAND=start docker compose up -d --force-recreate lobbym-front
 
 local-db-seed:
 	@echo "🛠️ Running Admin Migrations & Seeding..."
