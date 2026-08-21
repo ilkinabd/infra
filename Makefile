@@ -427,7 +427,7 @@ prod-front-start:
 		-e NODE_OPTIONS="--max-old-space-size=1536" \
 		-e COREPACK_ENABLE_AUTO_CONFIRM=1 \
 		-e COREPACK_HOME=/tmp/corepack \
-		node:22-alpine sh -c "corepack enable && corepack prepare pnpm@latest --activate && pnpm install --no-frozen-lockfile --ignore-scripts && pnpm run build"
+		node:22-alpine sh -c "corepack enable && corepack prepare pnpm@9.15.2 --activate && pnpm install --no-frozen-lockfile --ignore-scripts && pnpm run build"
 	@echo "🚀 Starting frontend service..."
 	cd production && sudo docker compose up -d --build --force-recreate lobbym-front
 
@@ -455,7 +455,7 @@ prod-front-build:
 		-e NODE_OPTIONS="--max-old-space-size=1536" \
 		-e COREPACK_ENABLE_AUTO_CONFIRM=1 \
 		-e COREPACK_HOME=/tmp/corepack \
-		node:22-alpine sh -c "corepack enable && corepack prepare pnpm@latest --activate && pnpm install --no-frozen-lockfile --ignore-scripts && pnpm run build"
+		node:22-alpine sh -c "corepack enable && corepack prepare pnpm@9.15.2 --activate && pnpm install --no-frozen-lockfile --ignore-scripts && pnpm run build"
 	@echo "🔄 Restarting frontend container..."
 	cd production && sudo docker compose up -d --force-recreate lobbym-front
 
