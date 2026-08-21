@@ -12,6 +12,8 @@ endif
 DOCKER_UID_GID = -u "$$(id -u):$$(id -g)"
 MODE ?= prod
 
+PNPM_VERSION = 9.15.2
+
 # Helper functions for containerized tool runners
 define run_composer
 	docker run --rm -v "$(1):/app" -w /app $(DOCKER_UID_GID) composer:2.6 composer $(2) --ignore-platform-reqs
@@ -22,7 +24,7 @@ define run_npm
 endef
 
 define run_pnpm
-	docker run --rm -v "$(1):/app" -w /app $(DOCKER_UID_GID) -e COREPACK_ENABLE_AUTO_CONFIRM=1 -e COREPACK_HOME=/tmp/corepack node:22-alpine corepack pnpm $(2)
+	docker run --rm -v "$(1):/app" -w /app $(DOCKER_UID_GID) -e COREPACK_ENABLE_AUTO_CONFIRM=1 -e COREPACK_HOME=/tmp/corepack node:22-alpine sh -c "corepack enable && corepack prepare pnpm@$(PNPM_VERSION) --activate && pnpm $(2)"
 endef
 
 .PHONY: help local local-clean local-front-build local-front-dev local-db-seed local-search-reindex local-logs-clear hosts-add hosts-remove \
@@ -155,7 +157,7 @@ local-front-build:
 		-e NODE_OPTIONS="--max-old-space-size=1536" \
 		-e COREPACK_ENABLE_AUTO_CONFIRM=1 \
 		-e COREPACK_HOME=/tmp/corepack \
-		node:22-alpine sh -c "corepack enable && corepack prepare pnpm@9.15.2 --activate && pnpm run build"
+		node:22-alpine sh -c "corepack enable && corepack prepare pnpm@\$(PNPM_VERSION) --activate && pnpm run build"
 	@echo "🔄 Starting/Restarting local frontend container in production mode..."
 	cd local && FRONT_COMMAND=start docker compose up -d --force-recreate lobbym-front
 
@@ -415,7 +417,7 @@ prod-backend-stop:
 
 prod-front-start:
 	@echo "📦 Installing Node dependencies and building Frontend Next.js app..."
-	docker run --rm --env-file production/enviroment/front.env -v "/var/www/$(FRONT_DOMAIN):/app" -w /app node:22-alpine sh -c "corepack enable && corepack prepare pnpm@9.15.2 --activate && pnpm install --no-frozen-lockfile --ignore-scripts && pnpm run build"
+	docker run --rm --env-file production/enviroment/front.env -v "/var/www/$(FRONT_DOMAIN):/app" -w /app node:22-alpine sh -c "corepack enable && corepack prepare pnpm@\$(PNPM_VERSION) --activate && pnpm install --no-frozen-lockfile --ignore-scripts && pnpm run build"
 	@echo "🚀 Starting frontend service..."
 	cd production && sudo docker compose up -d --build --force-recreate lobbym-front
 
@@ -431,7 +433,7 @@ prod-front-build:
 	@echo "⚙️ Regenerating environment files..."
 	$(MAKE) prod-env-generate
 	@echo "📦 Rebuilding Frontend Next.js app..."
-	docker run --rm --env-file production/enviroment/front.env -v "/var/www/$(FRONT_DOMAIN):/app" -w /app node:22-alpine sh -c "corepack enable && corepack prepare pnpm@9.15.2 --activate && pnpm install --no-frozen-lockfile --ignore-scripts && pnpm run build"
+	docker run --rm --env-file production/enviroment/front.env -v "/var/www/$(FRONT_DOMAIN):/app" -w /app node:22-alpine sh -c "corepack enable && corepack prepare pnpm@\$(PNPM_VERSION) --activate && pnpm install --no-frozen-lockfile --ignore-scripts && pnpm run build"
 	@echo "🔄 Restarting frontend container..."
 	cd production && sudo docker compose up -d --force-recreate lobbym-front
 
