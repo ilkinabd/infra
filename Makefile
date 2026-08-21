@@ -25,7 +25,7 @@ define run_pnpm
 	docker run --rm -v "$(1):/app" -w /app $(DOCKER_UID_GID) -e COREPACK_ENABLE_AUTO_CONFIRM=1 -e COREPACK_HOME=/tmp/corepack node:22-alpine corepack pnpm $(2)
 endef
 
-.PHONY: help local local-clean local-front-build local-db-seed local-search-reindex local-logs-clear hosts-add hosts-remove \
+.PHONY: help local local-clean local-front-build local-front-dev local-db-seed local-search-reindex local-logs-clear hosts-add hosts-remove \
         prod-install-deps prod-app-start prod-app-stop prod-app-restart \
         prod-mail-start prod-mail-stop prod-mail-restart prod-status prod-logs \
         prod-mail-user-add prod-mail-user-del prod-mail-user-pass prod-mail-admin-add \
@@ -158,6 +158,12 @@ local-front-build:
 		node:22-alpine sh -c "corepack enable && corepack prepare pnpm@9.15.2 --activate && pnpm run build"
 	@echo "🔄 Starting/Restarting local frontend container in production mode..."
 	cd local && FRONT_COMMAND=start docker compose up -d --force-recreate lobbym-front
+
+local-front-dev:
+	@echo "🛑 Stopping and removing existing front container..."
+	cd local && docker compose stop lobbym-front && docker compose rm -f lobbym-front || true
+	@echo "🚀 Starting local frontend container in development mode..."
+	cd local && FRONT_COMMAND=dev docker compose up -d --force-recreate lobbym-front
 
 local-db-seed:
 	@echo "🛠️ Running Admin Migrations & Seeding..."
@@ -409,7 +415,19 @@ prod-backend-stop:
 
 prod-front-start:
 	@echo "📦 Installing Node dependencies and building Frontend Next.js app..."
-	docker run --rm --env-file production/enviroment/front.env -v "/var/www/$(FRONT_DOMAIN):/app" -w /app node:22-alpine sh -c "corepack enable && corepack prepare pnpm@latest --activate && pnpm install --no-frozen-lockfile --ignore-scripts && pnpm run build"
+	mkdir -p /root/.corepack /root/.pnpm-store
+	docker run --rm \
+		--cpus="1.5" \
+		--memory="2g" \
+		-v "/root/.corepack:/tmp/corepack" \
+		-v "/root/.pnpm-store:/root/.local/share/pnpm/store" \
+		--env-file production/enviroment/front.env \
+		-v "/var/www/$(FRONT_DOMAIN):/app" \
+		-w /app \
+		-e NODE_OPTIONS="--max-old-space-size=1536" \
+		-e COREPACK_ENABLE_AUTO_CONFIRM=1 \
+		-e COREPACK_HOME=/tmp/corepack \
+		node:22-alpine sh -c "corepack enable && corepack prepare pnpm@latest --activate && pnpm install --no-frozen-lockfile --ignore-scripts && pnpm run build"
 	@echo "🚀 Starting frontend service..."
 	cd production && sudo docker compose up -d --build --force-recreate lobbym-front
 
@@ -425,7 +443,19 @@ prod-front-build:
 	@echo "⚙️ Regenerating environment files..."
 	$(MAKE) prod-env-generate
 	@echo "📦 Rebuilding Frontend Next.js app..."
-	docker run --rm --env-file production/enviroment/front.env -v "/var/www/$(FRONT_DOMAIN):/app" -w /app node:22-alpine sh -c "corepack enable && corepack prepare pnpm@latest --activate && pnpm install --no-frozen-lockfile --ignore-scripts && pnpm run build"
+	mkdir -p /root/.corepack /root/.pnpm-store
+	docker run --rm \
+		--cpus="1.5" \
+		--memory="2g" \
+		-v "/root/.corepack:/tmp/corepack" \
+		-v "/root/.pnpm-store:/root/.local/share/pnpm/store" \
+		--env-file production/enviroment/front.env \
+		-v "/var/www/$(FRONT_DOMAIN):/app" \
+		-w /app \
+		-e NODE_OPTIONS="--max-old-space-size=1536" \
+		-e COREPACK_ENABLE_AUTO_CONFIRM=1 \
+		-e COREPACK_HOME=/tmp/corepack \
+		node:22-alpine sh -c "corepack enable && corepack prepare pnpm@latest --activate && pnpm install --no-frozen-lockfile --ignore-scripts && pnpm run build"
 	@echo "🔄 Restarting frontend container..."
 	cd production && sudo docker compose up -d --force-recreate lobbym-front
 
