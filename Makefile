@@ -27,7 +27,8 @@ define run_pnpm
 	docker run --rm -v "$(1):/app" -w /app $(DOCKER_UID_GID) -e COREPACK_ENABLE_AUTO_CONFIRM=1 -e COREPACK_HOME=/tmp/corepack node:22-alpine sh -c "corepack enable && corepack prepare pnpm@$(PNPM_VERSION) --activate && pnpm $(2)"
 endef
 
-.PHONY: help local local-clean local-front-build local-front-dev local-db-seed local-search-reindex local-logs-clear hosts-add hosts-remove \
+.PHONY: help local local-clean local-front-build local-front-dev local-db-seed local-db-migrate local-search-reindex local-logs-clear hosts-add hosts-remove \
+        local-reports-aggregate local-reports-clear prod-reports-aggregate prod-reports-clear \
         prod-install-deps prod-app-start prod-app-stop prod-app-restart \
         prod-mail-start prod-mail-stop prod-mail-restart prod-status prod-logs \
         prod-mail-user-add prod-mail-user-del prod-mail-user-pass prod-mail-admin-add \
@@ -45,6 +46,9 @@ help:
 	@echo "  make local-clean      - Stop and clean local docker compose containers and volumes"
 	@echo "  make local-front-build - Rebuild Next.js frontend and restart frontend container"
 	@echo "  make local-db-seed    - Run database migrations and seeders for local environment"
+	@echo "  make local-db-migrate - Run migrations for admin, api and report on local"
+	@echo "  make local-reports-aggregate - Run report aggregation command on local"
+	@echo "  make local-reports-clear - Truncate report tables on local"
 	@echo "  make local-search-reindex - Recreate and populate Elasticsearch search indexes"
 	@echo "  make local-logs-clear - Empty the mail_worker.log file"
 	@echo "  make hosts-add        - Add dev domains to Windows hosts file"
@@ -70,6 +74,8 @@ help:
 	@echo "  make prod-db-migrate      - Run production Laravel database migrations safely"
 	@echo "  make prod-db-seed         - Run production Laravel database seeders"
 	@echo "  make prod-db-reset        - Drop all tables, run migrations and seeders on production (destructive)"
+	@echo "  make prod-reports-aggregate - Run report aggregation command on production"
+	@echo "  make prod-reports-clear   - Truncate report tables on production"
 	@echo "  make prod-storage-link    - Create public storage symlinks for Laravel services"
 	@echo "  make prod-mail-start      - Start Mailu mail server stack on droplet"
 	@echo "  make prod-mail-stop       - Stop Mailu mail server stack on droplet"
@@ -170,6 +176,20 @@ local-front-dev:
 local-db-seed:
 	@echo "🛠️ Running Admin Migrations & Seeding..."
 	docker exec lobbym-admin-php php artisan migrate:fresh --seed
+
+local-db-migrate:
+	@echo "🛠️ Running migrations on dev.admin, dev.api, dev.report..."
+	docker exec lobbym-admin-php php artisan migrate --force
+	docker exec lobbym-api-php php artisan migrate --force
+	docker exec lobbym-report-php php artisan migrate --force
+
+local-reports-aggregate:
+	@echo "📊 Aggregating local analytics reports..."
+	docker exec lobbym-report-php php artisan app:aggregate-reports
+
+local-reports-clear:
+	@echo "🧹 Clearing local report tables..."
+	docker exec lobbym-report-php php artisan app:clear-reports
 
 local-search-reindex:
 	@echo "🔍 Reindexing Elasticsearch search engine..."
@@ -578,8 +598,18 @@ prod-db-list:
 	sudo docker exec -it lobbym-postgres psql -U postgres -c "\l"
 
 prod-db-migrate:
-	@echo "🛠️ Running production database migrations..."
+	@echo "🛠️ Running production database migrations on all services..."
 	sudo docker exec lobbym-admin-php php artisan migrate --force
+	sudo docker exec lobbym-api-php php artisan migrate --force
+	sudo docker exec lobbym-report-php php artisan migrate --force
+
+prod-reports-aggregate:
+	@echo "📊 Aggregating production analytics reports..."
+	sudo docker exec lobbym-report-php php artisan app:aggregate-reports
+
+prod-reports-clear:
+	@echo "🧹 Clearing production report tables..."
+	sudo docker exec lobbym-report-php php artisan app:clear-reports
 
 prod-db-seed:
 	@echo "🌱 Running production database seeding..."
