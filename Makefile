@@ -416,7 +416,7 @@ prod-backend-start:
 	docker run --rm -v "/var/www/$(REPORT_DOMAIN):/app" -w /app node:22-alpine npm run build || true
 	mkdir -p production/scraper
 	@echo "🚀 Starting backend services..."
-	cd production && sudo docker compose up -d --build --force-recreate lobbym-api-php lobbym-admin-php lobbym-report-php lobbym-scraper lobbym-socket lobbym-email-consumer lobbym-notification-consumer
+	cd production && sudo docker compose up -d --build --force-recreate lobbym-api-php lobbym-admin-php lobbym-report-php lobbym-scraper lobbym-socket lobbym-email-consumer lobbym-notification-consumer ffmpeg
 	@echo "🔓 Fixing Laravel storage and cache folder permissions..."
 	sudo docker exec lobbym-api-php mkdir -p storage/app/payments || true
 	sudo docker exec lobbym-api-php chmod -R 777 storage bootstrap/cache || true

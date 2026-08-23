@@ -135,6 +135,16 @@ services:
     networks:
       - lobbym-network
 
+  ffmpeg:
+    image: alpine:3.18
+    container_name: lobbym-ffmpeg
+    restart: always
+    volumes:
+      - ../../dev.api.lobbym.com:/var/www/dev.api.lobbym.com
+    entrypoint: ["sh", "-c", "apk add --no-cache ffmpeg && tail -f /dev/null"]
+    networks:
+      - lobbym-network
+
   # --- APPLICATIONS ---
   lobbym-front:
     build:
@@ -159,6 +169,7 @@ services:
       context: ../../dev.api.lobbym.com
       dockerfile: deployments/Dockerfile
     container_name: lobbym-api-php
+    entrypoint: ["sh", "-c", "chmod 666 /var/run/docker.sock && docker-php-entrypoint php-fpm"]
     restart: always
     working_dir: /var/www/dev.api.lobbym.com
     volumes:
