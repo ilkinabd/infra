@@ -140,7 +140,7 @@ services:
     container_name: lobbym-ffmpeg
     restart: always
     volumes:
-      - ../../dev.api.lobbym.com:/var/www/dev.api.lobbym.com
+      - ../../dev.api.lobbym.com/storage:/var/www/dev.api.lobbym.com/storage
     entrypoint: ["sh", "-c", "apk add --no-cache ffmpeg && tail -f /dev/null"]
     networks:
       - lobbym-network
