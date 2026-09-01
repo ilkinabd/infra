@@ -170,8 +170,8 @@ local-front-build:
 local-front-dev:
 	@echo "🛑 Stopping and removing existing front container..."
 	cd local && docker compose stop lobbym-front && docker compose rm -f lobbym-front || true
-	@echo "🚀 Starting local frontend container in development mode..."
-	cd local && FRONT_COMMAND=dev docker compose up -d --force-recreate lobbym-front
+	@echo "🚀 Starting Next.js frontend in development mode on host..."
+	cd $(FRONT_DIR) && npm run dev
 
 local-db-seed:
 	@echo "🛠️ Running Admin Migrations & Seeding..."
