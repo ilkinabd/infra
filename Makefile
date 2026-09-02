@@ -128,7 +128,7 @@ local:
 
 	@echo "📦 Installing Node dependencies..."
 	if [ ! -d "$(ADMIN_DIR)/node_modules" ]; then $(call run_npm,$(ADMIN_DIR),install); fi
-	if [ ! -d "$(FRONT_DIR)/node_modules" ]; then $(call run_pnpm,$(FRONT_DIR),install); fi
+	if [ ! -d "$(REPORT_DIR)/node_modules" ]; then $(call run_npm,$(REPORT_DIR),install); fi
 
 	@echo "🐳 Starting Ecosystem Containers..."
 	cd local && docker compose up -d --build

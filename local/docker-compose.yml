@@ -22,7 +22,6 @@ services:
           - devadmin.lobbym.com
           - devreport.lobbym.com
     depends_on:
-      - lobbym-front
       - lobbym-api-php
       - lobbym-admin-php
       - lobbym-report-php
@@ -146,23 +145,7 @@ services:
       - lobbym-network
 
   # --- APPLICATIONS ---
-  lobbym-front:
-    build:
-      context: ../../dev.front.lobbym.com
-      dockerfile: deployments/Dockerfile
-    container_name: lobbym-front
-    restart: always
-    working_dir: /app
-    volumes:
-      - ../../dev.front.lobbym.com:/app
-    env_file:
-      - ../../dev.front.lobbym.com/deployments/.env
-    environment:
-      - HOSTNAME=0.0.0.0
-      - PORT=3000
-    networks:
-      - lobbym-network
-    command: ${FRONT_COMMAND:-dev}
+
 
   lobbym-api-php:
     build:
