@@ -173,11 +173,11 @@ services:
     networks:
       - lobbym-network
 
-  lobbym-email-consumer:
+  lobbym-messages-consumer:
     build:
       context: /var/www/__API_DOMAIN__
       dockerfile: deployments/Dockerfile
-    container_name: lobbym-email-consumer
+    container_name: lobbym-messages-consumer
     restart: always
     working_dir: /var/www/__API_DOMAIN__
     volumes:
@@ -185,24 +185,7 @@ services:
       - ./enviroment/api.env:/var/www/__API_DOMAIN__/.env
     networks:
       - lobbym-network
-    command: php artisan emails:consume
-    depends_on:
-      - rabbitmq
-      - db
-
-  lobbym-notification-consumer:
-    build:
-      context: /var/www/__API_DOMAIN__
-      dockerfile: deployments/Dockerfile
-    container_name: lobbym-notification-consumer
-    restart: always
-    working_dir: /var/www/__API_DOMAIN__
-    volumes:
-      - /var/www/__API_DOMAIN__:/var/www/__API_DOMAIN__
-      - ./enviroment/api.env:/var/www/__API_DOMAIN__/.env
-    networks:
-      - lobbym-network
-    command: php artisan notifications:consume
+    command: php artisan messages:consume
     depends_on:
       - rabbitmq
       - db

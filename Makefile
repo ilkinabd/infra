@@ -27,7 +27,7 @@ define run_pnpm
 	docker run --rm -v "$(1):/app" -w /app $(DOCKER_UID_GID) -e COREPACK_ENABLE_AUTO_CONFIRM=1 -e COREPACK_HOME=/tmp/corepack node:22-alpine sh -c "corepack enable && corepack prepare pnpm@$(PNPM_VERSION) --activate && pnpm $(2)"
 endef
 
-.PHONY: help local local-clean local-front-build local-front-dev local-db-seed local-db-migrate local-search-reindex local-logs-clear hosts-add hosts-remove \
+.PHONY: help ps rm local local-clean local-front-build local-front-dev local-db-seed local-db-migrate local-search-reindex local-logs-clear hosts-add hosts-remove \
         local-reports-aggregate local-reports-clear prod-reports-aggregate prod-reports-clear \
         prod-install-deps prod-app-start prod-app-stop prod-app-restart \
         prod-mail-start prod-mail-stop prod-mail-restart prod-status prod-logs \
@@ -41,6 +41,10 @@ endef
 help:
 	@echo "Lobbym Infrastructure Management Console"
 	@echo "========================================="
+	@echo "Global Commands:"
+	@echo "  make ps               - List all running docker containers in pretty format"
+	@echo "  make rm c=<container> - Force remove a specific container by name (e.g. make rm c=lobbym-email-consumer)"
+	@echo ""
 	@echo "Local Environment Commands:"
 	@echo "  make local            - Build and start the entire local development ecosystem"
 	@echo "  make local-clean      - Stop and clean local docker compose containers and volumes"
@@ -116,6 +120,18 @@ help:
 	@echo "  make prod-rabbitmq-restart - Restart RabbitMQ container"
 	@echo "  make prod-elastic-restart - Restart Elasticsearch & Kibana containers"
 	@echo "  make prod-search-reindex  - Recreate and populate Elasticsearch search indexes on production"
+
+ps:
+	@echo "🐳 Running Docker Containers:"
+	@docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}\t{{.Image}}"
+
+rm:
+	@if [ -z "$(c)" ]; then \
+		echo "❌ Error: Please specify a container name. Usage: make rm c=<container_name>"; \
+		exit 1; \
+	fi
+	@echo "🗑️ Removing container $(c)..."
+	@docker rm -f $(c)
 
 local:
 	@echo "🌐 Creating lobbym-network network..."
@@ -416,7 +432,7 @@ prod-backend-start:
 	docker run --rm -v "/var/www/$(REPORT_DOMAIN):/app" -w /app node:22-alpine npm run build || true
 	mkdir -p production/scraper
 	@echo "🚀 Starting backend services..."
-	cd production && sudo docker compose up -d --build --force-recreate lobbym-api-php lobbym-admin-php lobbym-report-php lobbym-scraper lobbym-socket lobbym-email-consumer lobbym-notification-consumer ffmpeg
+	cd production && sudo docker compose up -d --build --force-recreate lobbym-api-php lobbym-admin-php lobbym-report-php lobbym-scraper lobbym-socket lobbym-messages-consumer ffmpeg
 	@echo "🔓 Fixing Laravel storage and cache folder permissions..."
 	sudo docker exec lobbym-api-php mkdir -p storage/app/payments || true
 	sudo docker exec lobbym-api-php chmod -R 777 storage bootstrap/cache || true
@@ -433,7 +449,7 @@ prod-backend-start:
 
 prod-backend-stop:
 	@echo "🛑 Stopping backend services..."
-	cd production && sudo docker compose stop lobbym-api-php lobbym-admin-php lobbym-report-php lobbym-scraper lobbym-socket lobbym-email-consumer
+	cd production && sudo docker compose stop lobbym-api-php lobbym-admin-php lobbym-report-php lobbym-scraper lobbym-socket lobbym-messages-consumer
 
 prod-front-start:
 	@echo "📦 Installing Node dependencies and building Frontend Next.js app..."
@@ -537,7 +553,7 @@ prod-logs-front:
 	cd production && sudo docker compose logs -f --tail=100 lobbym-front
 
 prod-logs-consumer:
-	cd production && sudo docker compose logs -f --tail=100 lobbym-email-consumer
+	cd production && sudo docker compose logs -f --tail=100 lobbym-messages-consumer
 
 prod-laravel-logs-api:
 	tail -n 100 -f /var/www/$(API_DOMAIN)/storage/logs/laravel.log
@@ -643,6 +659,10 @@ prod-rabbitmq-restart:
 
 prod-elastic-restart:
 	cd production && sudo docker compose restart elasticsearch kibana
+
+prod-consumers-recreate:
+	@echo "🔄 Recreating backend message consumers..."
+	cd production && sudo docker compose up -d --build --force-recreate lobbym-messages-consumer
 
 prod-search-reindex:
 	@echo "🔍 Reindexing Elasticsearch search engine on production..."
